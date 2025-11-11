@@ -1,3 +1,37 @@
 <resources>
-    <string name="app_name">23I-0011_23I-0646</string>
+    <string name="app_name">assignment_1</string>
+    <string name="notif1_text1"> <b>karennne</b> liked 3 posts. <font color="#808080">3h</font></string>
+    <string name="notif1_text2"> <b>kiero_d, zackjohn</b> and <b>craig_love</b> liked <b>joshua_l</b> photo <font color="#808080">3h</font></string>
+    <string name="notif1_text3"> <b>kiero_d</b> started following <b>craig_love.</b> <font color="#808080">3h</font></string>
+    <string name="notif1_text4"> <b>craig_love</b> liked 8 posts. <font color="#808080">3h</font></string>
+    <string name="notif1_text5"> <b>maxjacobson</b> and <b>zackjohn</b> liked <b>mis_potter\'s</b> post. <font color="#808080">3h</font></string>
+    <string name="notif1_text6"> <b>maxjacobson</b> and <b>craig_love</b> liked <b>martini_rond\'s</b> post. <font color="#808080">3h</font></string>
+    <string name="notif1_text7"><b>karenne</b> liked <font color="#0000FF">@martini_rond\'s</font> comment. <font color="#808080">3h</font></string>
+    <string name="notif1_text8"><b>maxjacobson</b> liked 3 posts. <font color="#808080">3h</font></string>
+
+    <string name="notif2_text1"><b>karenne</b> liked your photo. <font color="#808080">1h</font></string>
+    <string name="notif2_text2"><b>kiero_d, zackjohn</b> and <b>26 others</b> liked your photo. <font color="#808080">3h</font></string>
+    <string name="notif2_text3"><b>craig_love</b> mentioned you in a comment: <font color="#0000FF">@jacob_w</font> exactly..💫 <font color="#808080">2d</font></string>
+    <string name="notif2_text4"><b>martini_rond</b> started following you. <font color="#808080">3d</font></string>
+    <string name="notif2_text5"><b>maxjacobson</b> started following you. <font color="#808080">3d</font></string>
+    <string name="notif2_text6"><b>mis_potter</b> started following you. <font color="#808080">3d</font></string>
+    <string name="notif2_text7"><b>m_humphrey</b> started following you. <font color="#808080">3d</font></string>
+    <string name="notif2_text8"><b>joshua_l</b> started following you. <font color="#808080">3d</font></string>
+
+    <string name="profilebio">Digital goodies designer <font color="#0000FF">@pixellz</font></string>
+
+    <string name="h1"><font color="#FFFFFF">Highlight </font> <font color="#D3D3D3">December 3, 2023</font></string>
+    <string name="h2"><b><font color="#FFFFFF">Artist</font></b><font color="#FFFFFF"> . Song Title ></font></string>
+
+
+    <string name="bio">Digital goodies designer <font color="#9b5a5a">@pixellz</font> Everything is designed</string>
+
+    <string name="s1"><font color="#FFFFFF">craig_love </font> <font color="#D3D3D3">4h</font></string>
+
+    <string name="storydm"><font color="#9b5a5a">Send Message</font></string>
+
+    <string name="storyactivity">gursky.studio ☑ <font color="#D3D3D3"> 11h</font></string>
+
+    <string name="p1">Followed by <b>your friend, another friend</b> and <b>297 others</b></string>
+
 </resources>
