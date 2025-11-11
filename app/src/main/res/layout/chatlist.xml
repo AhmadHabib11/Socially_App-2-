@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#fafafa"
+    android:id="@+id/chatlist">
+
+    <!-- Top Bar -->
+    <RelativeLayout
+        android:id="@+id/topbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp"
+        android:layout_marginTop="40dp">
+
+        <!-- Back Arrow -->
+        <ImageView
+            android:id="@+id/backArrow"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:src="@drawable/redarrow"
+            android:layout_alignParentStart="true" />
+
+        <ImageView
+            android:id="@+id/plus"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/plus"
+            android:layout_alignParentEnd="true" />
+
+        <!-- Username with down arrow -->
+        <LinearLayout
+            android:id="@+id/usernameLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentTop="true">
+
+            <TextView
+                android:id="@+id/username"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="jacob_w"
+                android:textColor="#957070"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <ImageView
+                android:id="@+id/dropdownArrow"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/downarrow"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="6dp" />
+        </LinearLayout>
+
+        <!-- Search Bar -->
+        <LinearLayout
+            android:id="@+id/searchBar"
+            android:layout_width="match_parent"
+            android:layout_height="45dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/searchbar2"
+            android:paddingHorizontal="10dp"
+            android:layout_below="@id/usernameLayout"
+            android:layout_marginTop="16dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/searchicon2"
+                android:layout_marginEnd="6dp"/>
+
+            <EditText
+                android:id="@+id/searchEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint=" Search"
+                android:textSize="22sp"
+                android:background="@android:color/transparent"
+                android:padding="0dp"/>
+        </LinearLayout>
+
+    </RelativeLayout>
+
+    <!-- RecyclerView for Chat List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvChatList"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/topbar"
+        android:layout_above="@id/bottomCamera"
+        android:paddingStart="10dp"
+        android:clipToPadding="false"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+    <LinearLayout
+        android:id="@+id/bottomCamera"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:layout_above="@id/homeindicator"
+        android:padding="12dp">
+
+        <ImageView
+            android:id="@+id/cambottom"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:src="@drawable/filledcamera"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Camera"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black" />
+    </LinearLayout>
+
+    <!-- Home Indicator at Bottom -->
+    <ImageView
+        android:id="@+id/homeindicator"
+        android:src="@drawable/homeindicator"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="5dp"/>
+</RelativeLayout>

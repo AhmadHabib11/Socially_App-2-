@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="@drawable/messagebubble"
+    android:clickable="true"
+    android:focusable="true">
+
+    <TextView
+        android:id="@+id/tvShareLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Shared a post"
+        android:textSize="12sp"
+        android:textColor="#666666"
+        android:layout_marginBottom="4dp" />
+
+    <ImageView
+        android:id="@+id/ivPostImage"
+        android:layout_width="150dp"
+        android:layout_height="120dp"
+        android:scaleType="centerCrop"
+        android:background="@color/light_gray"
+        android:clipToOutline="true" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:background="@android:color/white">
+
+        <TextView
+            android:id="@+id/tvPostUsername"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="username"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/tvPostCaption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Post caption..."
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:maxLines="2"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvPostTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="4:49 PM"
+        android:textSize="10sp"
+        android:textColor="#999999"
+        android:layout_gravity="end"
+        android:layout_marginTop="4dp" />
+
+</LinearLayout>

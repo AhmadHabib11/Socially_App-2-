@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/dmscreen"
+    android:background="#fafafa">
+
+    <LinearLayout
+        android:id="@+id/topLayout"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="#fafafa"
+        android:elevation="5dp">
+
+        <ImageView
+            android:id="@+id/backArrow"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:src="@drawable/redarrow"
+            android:layout_marginTop="15dp" />
+
+        <ImageView
+            android:id="@+id/dp"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/circular_profile"
+            android:scaleType="centerCrop"
+            android:padding="2dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginStart="12dp"
+            android:src="@drawable/profilepic"/>
+
+        <TextView
+            android:id="@+id/username"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginTop="15dp"
+            android:layout_marginStart="12dp"
+            android:text="username"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <!-- Voice Call Icon (NEW) -->
+        <ImageView
+            android:id="@+id/voicecall"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/voicecall"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="15dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- Video Call Icon -->
+        <ImageView
+            android:id="@+id/vidcall"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/vidcall"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="15dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <ImageView
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:src="@drawable/i"
+            android:backgroundTint="#9b5a5a"
+            android:layout_marginTop="15dp"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <!-- RecyclerView for Messages -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMessages"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/topLayout"
+        android:layout_above="@id/bottomBar"
+        android:padding="8dp"
+        android:clipToPadding="false"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+    <!-- BOTTOM INPUT BAR -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="350dp"
+        android:layout_centerHorizontal="true"
+        android:layout_height="wrap_content"
+        android:minHeight="64dp"
+        android:layout_above="@id/homeindicator"
+        android:layout_marginBottom="40dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/messagebar"
+        android:padding="12dp">
+
+        <ImageView
+            android:id="@+id/camerabtn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/whitecamerafilled"
+            android:background="@drawable/marooncircle"
+            android:padding="6dp"
+            android:layout_marginEnd="6dp"
+            android:layout_gravity="bottom" />
+
+        <EditText
+            android:id="@+id/messageBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:maxHeight="120dp"
+            android:layout_weight="1"
+            android:hint="Message..."
+            android:background="#eaeaea"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="10dp"
+            android:textSize="18sp"
+            android:imeOptions="actionSend"
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLines="5"
+            android:scrollbars="vertical"
+            android:gravity="top" />
+
+        <ImageView
+            android:id="@+id/btnSend"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/mic"
+            android:layout_marginStart="8dp"
+            android:layout_gravity="bottom" />
+
+        <ImageView
+            android:id="@+id/gallery"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/photos"
+            android:layout_marginStart="8dp"
+            android:layout_gravity="bottom" />
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/sticker"
+            android:layout_marginStart="8dp"
+            android:layout_gravity="bottom" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/homeindicator"
+        android:src="@drawable/homeindicator"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="5dp"/>
+</RelativeLayout>

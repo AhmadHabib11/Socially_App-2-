@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/storyview"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <!-- Space for status bar -->
+    <View
+        android:id="@+id/top_spacer"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_alignParentTop="true" />
+
+    <!-- Image container -->
+    <FrameLayout
+        android:id="@+id/imageContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/top_spacer"
+        android:layout_above="@id/bottomBar"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/storybg"
+        android:clipToOutline="true"
+        android:layout_marginBottom="8dp">
+
+        <!-- Main Image -->
+        <ImageView
+            android:id="@+id/storyImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/storyimg" />
+
+        <!-- Highlight progress -->
+        <LinearLayout
+            android:id="@+id/highlight_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:gravity="center_vertical"
+            android:layout_gravity="top"
+            android:layout_marginTop="8dp">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:layout_weight="2"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/highlightdark" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:layout_weight="1.5"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/highlightdark" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:layout_weight="1.5"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/highlightdark" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:layout_weight="1.5"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/highlightlight" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:layout_weight="1.5"
+                android:background="@drawable/highlightlight" />
+        </LinearLayout>
+
+        <!-- Close Icon (top-right under progress bar) -->
+        <ImageView
+            android:id="@+id/closeIcon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/closeicon"
+            android:layout_gravity="end"
+            android:layout_marginTop="28dp"
+            android:layout_marginEnd="12dp" />
+
+        <!-- Highlight header - UPDATED FOR DYNAMIC DATA -->
+        <LinearLayout
+            android:id="@+id/highlight_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="top"
+            android:layout_marginTop="23dp"
+            android:layout_marginStart="12dp"
+            android:gravity="center_vertical">
+
+            <!-- DYNAMIC PROFILE IMAGE -->
+            <ImageView
+                android:id="@+id/storyProfileImage"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:src="@drawable/p7"
+                android:scaleType="centerCrop"
+                android:background="@drawable/circle_shape"
+                android:clipToOutline="true"
+                android:layout_marginEnd="8dp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- DYNAMIC USERNAME -->
+                <TextView
+                    android:id="@+id/username"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Username"
+                    android:textColor="#000000"
+                    android:textStyle="bold"
+                    android:textSize="18sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Bottom Bar -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="35dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <!-- Message Box with Camera at START -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/messagebarstory"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp">
+
+            <!-- Camera inside at START -->
+            <ImageView
+                android:id="@+id/camera"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/filledcamera"
+                android:background="@drawable/darkgreycircle"
+                android:padding="6dp"
+                android:layout_marginEnd="8dp"/>
+
+            <!-- Message input -->
+            <EditText
+                android:id="@+id/messageBox"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:hint="Send Message"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#AAAAAA"
+                android:background="@android:color/transparent"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- Send and More Icons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="12dp">
+
+            <ImageView
+                android:id="@+id/send"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/sendstory"
+                android:layout_marginEnd="16dp" />
+
+            <ImageView
+                android:id="@+id/more"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/morestory"
+                android:layout_marginTop="5dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Home Indicator -->
+    <ImageView
+        android:id="@+id/homeindicator"
+        android:src="@drawable/homeindicator"
+        android:layout_width="134dp"
+        android:layout_height="5dp"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="1dp" />
+
+</RelativeLayout>

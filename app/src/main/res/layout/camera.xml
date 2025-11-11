@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/camera"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <!-- Spacer for status bar -->
+    <View
+        android:id="@+id/top_spacer"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_alignParentTop="true" />
+
+    <!-- Image container -->
+    <FrameLayout
+        android:id="@+id/imageContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/top_spacer"
+        android:layout_above="@id/modeNav"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/storybg"
+        android:clipToOutline="true"
+        android:layout_marginBottom="8dp">
+
+        <!-- Main Image -->
+        <ImageView
+            android:id="@+id/storyImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/cambg" />
+
+        <!-- Close Icon -->
+        <ImageView
+            android:id="@+id/closeIcon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/camback"
+            android:layout_gravity="end"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="18dp" />
+
+        <!-- Highlight header -->
+        <LinearLayout
+            android:id="@+id/highlight_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="top"
+            android:layout_marginTop="20dp"
+            android:layout_marginStart="12dp"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/settings"
+                android:scaleType="centerCrop"
+                android:layout_marginEnd="8dp" />
+        </LinearLayout>
+
+        <!-- Bottom camera control icons -->
+        <LinearLayout
+            android:id="@+id/cameraControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="12dp">
+
+            <!-- Gallery Icon -->
+            <ImageView
+                android:id="@+id/galleryIcon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/imgcam"
+                android:layout_marginEnd="20dp"/>
+
+            <!-- Flash Icon -->
+            <ImageView
+                android:id="@+id/flashIcon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/flash"
+                android:layout_marginEnd="20dp"/>
+
+            <!-- Shutter (big circle) -->
+            <ImageView
+                android:id="@+id/shutterButton"
+                android:layout_width="90dp"
+                android:layout_height="90dp"
+                android:src="@drawable/shotbutton"
+                android:layout_marginEnd="20dp"/>
+
+            <!-- Switch Camera -->
+            <ImageView
+                android:id="@+id/switchCamera"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/switchcam"
+                android:layout_marginEnd="20dp"/>
+
+            <!-- Smiley / Effects -->
+            <ImageView
+                android:id="@+id/smileyIcon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/smileyicon"/>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Bottom Nav (modes) -->
+    <HorizontalScrollView
+        android:id="@+id/modeNav"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/homeindicator"
+        android:overScrollMode="never"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:layout_marginBottom="30dp"
+
+            >
+
+            <TextView
+                android:id="@+id/modeType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="             TYPE"
+                android:textColor="#9b5a5a"
+                android:textSize="14sp"
+                android:layout_marginHorizontal="12dp"/>
+
+            <TextView
+                android:id="@+id/modeLive"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LIVE"
+                android:textColor="#9b5a5a"
+                android:textSize="14sp"
+                android:layout_marginHorizontal="12dp"/>
+
+            <TextView
+                android:id="@+id/modeNormal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NORMAL"
+                android:textColor="#9b5a5a"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginHorizontal="12dp"/>
+
+            <TextView
+                android:id="@+id/modeBoomerang"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BOOMERANG"
+                android:textColor="#9b5a5a"
+                android:textSize="14sp"
+                android:layout_marginHorizontal="12dp"/>
+
+            <TextView
+                android:id="@+id/modeSuperzoom"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SUPERZOOM"
+                android:textColor="#9b5a5a"
+                android:textSize="14sp"
+                android:layout_marginHorizontal="12dp"/>
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Home Indicator -->
+    <ImageView
+        android:id="@+id/homeindicator"
+        android:src="@drawable/homeindicator"
+        android:layout_width="134dp"
+        android:layout_height="5dp"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="1dp" />
+</RelativeLayout>

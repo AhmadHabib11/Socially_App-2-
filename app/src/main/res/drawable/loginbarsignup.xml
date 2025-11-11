@@ -1,0 +1,10 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Rounded corners -->
+    <corners android:radius="12dp" />
+
+    <!-- Semi-transparent dark maroon (same as we used for login) -->
+    <solid android:color="#ae7675" />
+
+</shape>

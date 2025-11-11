@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/loginpage"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    >
+
+
+    <ImageView
+        android:id="@+id/backArrow"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@drawable/halfarrowleft"
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="80dp"
+        android:clickable="true"
+        />
+
+
+    <TextView
+        android:id="@+id/appTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Socially"
+        android:textSize="50sp"
+        android:fontFamily="@font/epitetbold"
+        android:textColor="#8d3d44"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="190dp" />
+
+
+    <LinearLayout
+        android:id="@+id/loginForm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_below="@id/appTitle"
+        android:layout_marginTop="45dp"
+        android:gravity="center_horizontal">
+
+
+        <EditText
+            android:id="@+id/username"
+            android:layout_width="360dp"
+            android:layout_height="55dp"
+            android:hint="Username/Email"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            android:background="@drawable/greybar"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp"
+            android:inputType="text"
+            />
+
+
+        <EditText
+            android:id="@+id/password"
+            android:layout_width="360dp"
+            android:layout_height="55dp"
+            android:hint="Password"
+            android:textColor="#000000"
+            android:textColorHint="#888888"
+            android:background="@drawable/greybar"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp"
+            android:inputType="textPassword"
+            />
+
+        <TextView
+            android:id="@+id/forgotPassword"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="Forgot Password?"
+            android:textColor="#8d3d44"
+            android:textSize="14sp"
+            android:gravity="end"
+            android:layout_marginEnd="-100dp"
+            android:layout_marginBottom="20dp"
+            android:clickable="true"
+            />
+
+        <TextView
+            android:id="@+id/loginbar"
+            android:layout_width="350dp"
+            android:layout_height="55dp"
+            android:background="@drawable/loginbar"
+            android:backgroundTint="#808d3d44"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp"
+            android:layout_marginTop="-15dp"
+            android:text="Log in"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:textSize="15sp"
+            />
+
+
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:layout_marginTop="60dp">
+
+            <View
+                android:layout_width="135dp"
+                android:layout_height="1dp"
+                android:background="#888888"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="OR"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="#888888"
+                android:layout_marginStart="30dp"
+                android:layout_marginEnd="30dp"/>
+
+            <View
+                android:layout_width="135dp"
+                android:layout_height="1dp"
+                android:background="#888888"/>
+        </LinearLayout>
+
+
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:layout_marginTop="40dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Don’t have an account? "
+                android:textSize="15sp"
+                android:textColor="#888888"/>
+
+            <TextView
+                android:id="@+id/signup"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:text="Sign up"
+                android:textColor="#808d3d44"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+
+
+
+    </LinearLayout>
+
+
+    <View
+        android:layout_width="290dp"
+        android:layout_height="1dp"
+        android:layout_above="@id/homeindicator"
+        android:layout_marginBottom="70dp"
+        android:background="#888888"
+        android:layout_centerHorizontal="true"
+        />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Socially"
+        android:textSize="20sp"
+        android:fontFamily="@font/epitetbold"
+        android:textColor="#8d3d44"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="850dp" />
+
+    <ImageView
+        android:id="@+id/homeindicator"
+        android:src="@drawable/homeindicator"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="5dp"
+        />
+
+
+
+
+</RelativeLayout>

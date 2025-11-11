@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/storyupload"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <!-- Spacer for status bar -->
+    <View
+        android:id="@+id/top_spacer"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_alignParentTop="true" />
+
+    <!-- Image container -->
+    <FrameLayout
+        android:id="@+id/imageContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/top_spacer"
+        android:layout_above="@id/bottomBar"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/storybg"
+        android:clipToOutline="true">
+
+        <!-- Main Image -->
+        <ImageView
+            android:id="@+id/storyImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/bird2" />
+
+        <!-- Top bar (cross + right icons) -->
+        <LinearLayout
+            android:id="@+id/topbar"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_gravity="top"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="5dp"
+            android:paddingHorizontal="12dp">
+
+            <!-- Cross -->
+            <ImageView
+                android:id="@+id/closeBtn"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/goldcross"
+                android:layout_gravity="center_vertical" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Right Icons -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/partnership"
+                    android:layout_marginStart="10dp"/>
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/text"
+                    android:layout_marginStart="10dp"/>
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/goldsticker"
+                    android:layout_marginStart="10dp"/>
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/music"
+                    android:layout_marginStart="10dp"/>
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/goldstars"
+                    android:layout_marginStart="10dp"/>
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/goldmore"
+                    android:layout_marginStart="10dp"/>
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Bottom Bar -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/homeindicator"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:layout_marginBottom="20dp"
+        android:gravity="center_vertical">
+
+        <!-- Your Stories -->
+        <LinearLayout
+            android:id="@+id/yourstory"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp"
+            android:background="@drawable/yourstories"
+            android:gravity="center_vertical"
+            android:layout_marginEnd="10dp">
+
+
+
+
+        </LinearLayout>
+
+        <!-- Close Friends -->
+        <LinearLayout
+            android:id="@+id/closefriends"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp"
+            android:background="@drawable/closefriends"
+            android:gravity="center_vertical"
+            android:layout_marginEnd="10dp">
+
+
+        </LinearLayout>
+
+        <!-- Send (circle) -->
+        <ImageView
+            android:id="@+id/sendIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/goldnext"
+        />
+    </LinearLayout>
+
+
+    <!-- Home Indicator -->
+    <ImageView
+        android:id="@+id/homeindicator"
+        android:src="@drawable/homeindicatorgold"
+        android:layout_width="134dp"
+        android:layout_height="5dp"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="1dp" />
+
+</RelativeLayout>

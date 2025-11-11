@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/coverscreen"
+    android:gravity="center_horizontal"
+    android:background="@color/white"
+    >
+
+    <ImageView
+        android:id="@+id/sociallylogo"
+        android:layout_width="320dp"
+        android:layout_height="275dp"
+        android:src="@drawable/socially_logo"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/from"
+        android:layout_marginBottom="150dp"
+        />
+
+    <TextView
+        android:id="@+id/from"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="25dp"
+        android:text="from"
+        android:textColor="#8f9b9e"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/smd"
+        android:layout_marginBottom="-15dp"
+        />
+
+    <TextView
+        android:id="@+id/smd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="75dp"
+        android:text="SMD"
+        android:textColor="#8d3d44"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/homeindicator"
+        android:layout_marginBottom="35dp"
+        />
+
+    <ImageView
+        android:id="@+id/homeindicator"
+        android:src="@drawable/homeindicator"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="5dp" />
+
+</RelativeLayout>

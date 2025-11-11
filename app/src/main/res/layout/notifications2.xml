@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/notifications2">
+
+    <!-- Top Tabs -->
+    <LinearLayout
+        android:id="@+id/topLayout"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:orientation="horizontal"
+        android:background="@color/white">
+
+        <!-- Following Tab -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="bottom|center_horizontal"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/followingTab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Following"
+                android:textSize="22sp"
+                android:textColor="#9b5a5a"
+                android:textStyle="bold" />
+
+            <View
+                android:id="@+id/followingIndicator"
+                android:layout_width="180dp"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="#A9A9A9"/>
+        </LinearLayout>
+
+        <!-- You Tab -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="bottom|center_horizontal"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/youTab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="You"
+                android:textSize="22sp"
+                android:textColor="#9b5a5a"
+                android:textStyle="bold" />
+
+            <View
+                android:id="@+id/youIndicator"
+                android:layout_width="180dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="4dp"
+                android:background="#9b5a5a"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Scroll Area -->
+    <ScrollView
+        android:id="@+id/middleScroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/topLayout"
+        android:layout_above="@id/bottomLayout"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:background="@color/white">
+
+            <!-- Follow Requests Section -->
+            <TextView
+                android:id="@+id/followRequestsTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Follow Requests"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#9b5a5a"
+                android:layout_marginBottom="8dp"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="#9b5a5a"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- No Requests Text -->
+            <TextView
+                android:id="@+id/noRequestsText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No follow requests"
+                android:textSize="14sp"
+                android:textColor="#A9A9A9"
+                android:padding="16dp"
+                android:visibility="gone"/>
+
+            <!-- Follow Requests RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/followRequestsRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Notifications Section Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Recent Activity"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#9b5a5a"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Notifications RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/notificationsRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"/>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Bottom Navigation -->
+    <LinearLayout
+        android:id="@+id/bottomLayout"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:orientation="horizontal"
+        android:layout_alignParentBottom="true"
+        android:background="@android:color/white">
+
+        <LinearLayout
+            android:id="@+id/navbar"
+            android:layout_width="match_parent"
+            android:layout_height="85dp"
+            android:orientation="horizontal"
+            android:background="@android:color/white"
+            android:gravity="center">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center">
+                <ImageView
+                    android:id="@+id/homeIcon"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:src="@drawable/hollowhome"
+                    android:scaleType="centerInside"
+                    android:clickable="true" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center">
+                <ImageView
+                    android:id="@+id/searchIcon"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:src="@drawable/search"
+                    android:scaleType="centerInside"
+                    android:clickable="true" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center">
+                <ImageView
+                    android:id="@+id/reelsIcon"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:src="@drawable/post"
+                    android:scaleType="centerInside"
+                    android:clickable="true" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center">
+                <ImageView
+                    android:id="@+id/notifIcon"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:src="@drawable/filledheart"
+                    android:scaleType="centerInside"
+                    android:clickable="true" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center">
+                <ImageView
+                    android:id="@+id/profileIcon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/story1"
+                    android:scaleType="centerCrop"
+                    android:padding="3dp"
+                    android:clickable="true" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#888888"
+        android:layout_above="@id/bottomLayout"/>
+
+    <ImageView
+        android:id="@+id/homeindicator"
+        android:src="@drawable/homeindicator"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="5dp" />
+
+</RelativeLayout>
