@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">assignment_1</string>
+    <string name="app_name">assignment_3</string>
     <string name="notif1_text1"> <b>karennne</b> liked 3 posts. <font color="#808080">3h</font></string>
     <string name="notif1_text2"> <b>kiero_d, zackjohn</b> and <b>craig_love</b> liked <b>joshua_l</b> photo <font color="#808080">3h</font></string>
     <string name="notif1_text3"> <b>kiero_d</b> started following <b>craig_love.</b> <font color="#808080">3h</font></string>
