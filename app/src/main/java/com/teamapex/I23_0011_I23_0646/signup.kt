@@ -3,9 +3,17 @@ package com.teamapex.I23_0011_I23_0646
 import android.app.ProgressDialog
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Base64
+import android.util.Log
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.android.volley.Request
@@ -15,8 +23,6 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
-import android.util.Base64
-import android.util.Log
 
 class signup : AppCompatActivity() {
 
@@ -189,11 +195,16 @@ class signup : AppCompatActivity() {
                     bitmap = Bitmap.createScaledBitmap(bitmap, width, height, true)
                 }
 
-                findViewById<ImageView>(R.id.profileCircle).setImageBitmap(bitmap)
+                // Create circular bitmap and display it
+                val circularBitmap = getCircularBitmap(bitmap)
+                findViewById<ImageView>(R.id.profileCircle).setImageBitmap(circularBitmap)
+
+                // HIDE the camera icon after image is selected
+                findViewById<ImageView>(R.id.camera).visibility = View.GONE
 
                 val baos = ByteArrayOutputStream()
-                // Use PNG with compression
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
+                // Use JPEG with 80% quality to reduce size
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos)
                 val imageBytes = baos.toByteArray()
 
                 // Remove newlines from base64 string
@@ -207,5 +218,29 @@ class signup : AppCompatActivity() {
                 Log.e("ImageConversion", "Error: ${e.message}")
             }
         }
+    }
+
+    // Helper function to create circular bitmap
+    private fun getCircularBitmap(bitmap: Bitmap): Bitmap {
+        val size = Math.min(bitmap.width, bitmap.height)
+        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+
+        val canvas = Canvas(output)
+        val paint = Paint()
+        val rect = Rect(0, 0, size, size)
+
+        paint.isAntiAlias = true
+        canvas.drawARGB(0, 0, 0, 0)
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+
+        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+
+        val left = (bitmap.width - size) / 2
+        val top = (bitmap.height - size) / 2
+        val srcRect = Rect(left, top, left + size, top + size)
+
+        canvas.drawBitmap(bitmap, srcRect, rect, paint)
+
+        return output
     }
 }

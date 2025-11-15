@@ -10,8 +10,7 @@
     <RelativeLayout
         android:id="@+id/topSection"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        >
+        android:layout_height="wrap_content">
 
         <ImageView
             android:id="@+id/backArrow"
@@ -44,32 +43,39 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="6dp" />
 
-        <ImageView
-            android:id="@+id/profileCircle"
+        <!-- Circular Profile Image with Camera -->
+        <FrameLayout
             android:layout_width="100dp"
             android:layout_height="100dp"
-            android:background="@drawable/whitecircle"
-            android:scaleType="centerCrop"
             android:layout_centerHorizontal="true"
             android:layout_below="@id/createaccount"
-            android:layout_marginTop="12dp" />
+            android:layout_marginTop="12dp">
 
-        <ImageView
-            android:id="@+id/camera"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/camera"
-            android:layout_centerHorizontal="true"
-            android:layout_alignTop="@id/profileCircle"
-            android:layout_marginTop="30dp" />
+            <!-- Profile Circle (behind initially) -->
+            <ImageView
+                android:id="@+id/profileCircle"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:background="@drawable/whitecircle"
+                android:scaleType="centerCrop"
+                android:clipToOutline="true" />
+
+            <!-- Camera Icon (in front initially) -->
+            <ImageView
+                android:id="@+id/camera"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/camera"
+                android:layout_gravity="center"
+                android:clickable="true" />
+        </FrameLayout>
     </RelativeLayout>
 
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        >
+        android:layout_weight="1">
 
         <LinearLayout
             android:id="@+id/centerSection"
@@ -193,7 +199,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:hint="......."
-
                     android:inputType="textPassword"
                     android:textColor="@android:color/white"
                     android:textColorHint="#AAFFFFFF"
@@ -208,7 +213,6 @@
                     android:layout_marginStart="310dp"
                     android:layout_centerVertical="true" />
             </RelativeLayout>
-
 
             <View
                 android:layout_width="match_parent"
