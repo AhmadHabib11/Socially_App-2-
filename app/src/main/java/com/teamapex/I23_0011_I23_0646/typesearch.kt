@@ -12,19 +12,19 @@ class typesearch : AppCompatActivity() {
         setContentView(R.layout.typesearch)
 
         val cross = findViewById<ImageView>(R.id.clearIcon)
-        val profile = findViewById<LinearLayout>(R.id.profilesearch)
+      //  val profile = findViewById<LinearLayout>(R.id.profilesearch)
 
         cross.setOnClickListener {
             val intent = Intent(this, searchpage ::class.java)
             startActivity(intent)
             finish()
         }
-        profile.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-
-        }
+//        profile.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//
+//        }
 
     }
 }

@@ -29,11 +29,11 @@ class authorization : AppCompatActivity() {
 
         val loginb = findViewById<TextView>(R.id.loginbutton)
 
-        loginb.setOnClickListener {
-            val intent = Intent(this, feedpage::class.java)
-            startActivity(intent)
-            finish()
-        }
+//        loginb.setOnClickListener {
+//            val intent = Intent(this, feedpage::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
 
 
     }

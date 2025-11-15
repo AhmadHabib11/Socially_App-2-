@@ -16,16 +16,16 @@ class notifications2 : AppCompatActivity() {
         val search = findViewById<ImageView>(R.id.searchIcon)
         val create = findViewById<ImageView>(R.id.reelsIcon)
 
-        val p1 = findViewById<ImageView>(R.id.p1)
-        val p2 = findViewById<ImageView>(R.id.p2)
-        val p3 = findViewById<ImageView>(R.id.p3)
-        val p4 = findViewById<ImageView>(R.id.p4)
-        val p5 = findViewById<ImageView>(R.id.p5)
-        val p6 = findViewById<ImageView>(R.id.p6)
-        val p7 = findViewById<ImageView>(R.id.p7)
-
-        val post1 = findViewById<ImageView>(R.id.post1)
-        val post2 = findViewById<ImageView>(R.id.post2)
+//        val p1 = findViewById<ImageView>(R.id.p1)
+//        val p2 = findViewById<ImageView>(R.id.p2)
+//        val p3 = findViewById<ImageView>(R.id.p3)
+//        val p4 = findViewById<ImageView>(R.id.p4)
+//        val p5 = findViewById<ImageView>(R.id.p5)
+//        val p6 = findViewById<ImageView>(R.id.p6)
+//        val p7 = findViewById<ImageView>(R.id.p7)
+//
+//        val post1 = findViewById<ImageView>(R.id.post1)
+//        val post2 = findViewById<ImageView>(R.id.post2)
 
 
         ftab.setOnClickListener {
@@ -48,51 +48,51 @@ class notifications2 : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
-        p1.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-        }
-        p2.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-        }
-        p3.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-        }
-        p4.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-        }
-        p5.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-        }
-        p6.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-        }
-        p7.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-        }
-        post1.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-        }
-        post2.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow ::class.java)
-            startActivity(intent)
-            finish()
-        }
+//        p1.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        p2.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        p3.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        p4.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        p5.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        p6.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        p7.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        post1.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        post2.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow ::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
 
 
 

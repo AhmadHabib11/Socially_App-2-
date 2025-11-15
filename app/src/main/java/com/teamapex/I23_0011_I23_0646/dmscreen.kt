@@ -17,7 +17,7 @@ class dmscreen : AppCompatActivity() {
 
         val backarrow = findViewById<ImageView>(R.id.backArrow)
 
-        val cam = findViewById<ImageView>(R.id.camera)
+      //  val cam = findViewById<ImageView>(R.id.camera)
 
         vidcall.setOnClickListener {
             val intent = Intent(this, callpage ::class.java)
@@ -35,10 +35,10 @@ class dmscreen : AppCompatActivity() {
             finish()
         }
 
-        cam.setOnClickListener {
-            val intent = Intent(this, camera ::class.java)
-            startActivity(intent)
-        }
+//        cam.setOnClickListener {
+//            val intent = Intent(this, camera ::class.java)
+//            startActivity(intent)
+//        }
 
 
     }

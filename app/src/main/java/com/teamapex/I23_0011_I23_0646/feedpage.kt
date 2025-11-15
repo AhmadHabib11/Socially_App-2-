@@ -17,20 +17,20 @@ class feedpage : AppCompatActivity() {
         val create = findViewById<ImageView>(R.id.reelsIcon)
 
         val cam = findViewById<ImageView>(R.id.cameraIcon)
-        val yourstory = findViewById<ImageView>(R.id.yourstory)
-        val story1 = findViewById<ImageView>(R.id.story1)
-        val story2 = findViewById<ImageView>(R.id.story2)
-        val story3 = findViewById<ImageView>(R.id.story3)
-        val story4 = findViewById<ImageView>(R.id.story4)
+     //   val yourstory = findViewById<ImageView>(R.id.yourstory)
+//        val story1 = findViewById<ImageView>(R.id.story1)
+//        val story2 = findViewById<ImageView>(R.id.story2)
+//        val story3 = findViewById<ImageView>(R.id.story3)
+//        val story4 = findViewById<ImageView>(R.id.story4)
 
-        val postprofpic = findViewById<ImageView>(R.id.postProfilePic)
+      //  val postprofpic = findViewById<ImageView>(R.id.postProfilePic)
 
-        val send = findViewById<ImageView>(R.id.shareIcon)
-        send.setOnClickListener {
-            val intent = Intent(this, chatlist::class.java)
-            startActivity(intent)
-            finish()
-        }
+//     //   val send = findViewById<ImageView>(R.id.shareIcon)
+//        send.setOnClickListener {
+//            val intent = Intent(this, chatlist::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
 
 
         messenger.setOnClickListener {
@@ -59,42 +59,42 @@ class feedpage : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
-        yourstory.setOnClickListener {
-            val intent = Intent(this, storyactivity::class.java)
-            startActivity(intent)
-            finish()
-        }
-        story1.setOnClickListener {
-            val intent = Intent(this, storyview::class.java)
-            startActivity(intent)
-            finish()
-        }
-        story2.setOnClickListener {
-            val intent = Intent(this, storyview::class.java)
-            startActivity(intent)
-            finish()
-        }
-        story3.setOnClickListener {
-            val intent = Intent(this, storyview::class.java)
-            startActivity(intent)
-            finish()
-        }
-        story4.setOnClickListener {
-            val intent = Intent(this, storyview::class.java)
-            startActivity(intent)
-            finish()
-        }
-        create.setOnClickListener {
-            val intent = Intent(this, createpost::class.java)
-            startActivity(intent)
-            finish()
-        }
-
-        postprofpic.setOnClickListener {
-            val intent = Intent(this, profvisitnofollow::class.java)
-            startActivity(intent)
-            finish()
-        }
+//        yourstory.setOnClickListener {
+//            val intent = Intent(this, storyactivity::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        story1.setOnClickListener {
+//            val intent = Intent(this, storyview::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        story2.setOnClickListener {
+//            val intent = Intent(this, storyview::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        story3.setOnClickListener {
+//            val intent = Intent(this, storyview::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        story4.setOnClickListener {
+//            val intent = Intent(this, storyview::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//        create.setOnClickListener {
+//            val intent = Intent(this, createpost::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
+//
+//        postprofpic.setOnClickListener {
+//            val intent = Intent(this, profvisitnofollow::class.java)
+//            startActivity(intent)
+//            finish()
+//        }
 
 
 

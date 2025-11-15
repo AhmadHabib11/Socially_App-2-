@@ -30,7 +30,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme._23I0011_23I0646">
+        android:theme="@style/Theme._23I0011_23I0646"
+        android:usesCleartextTraffic="true"
+        >
         <activity
             android:name=".commentspage"
             android:exported="false" />

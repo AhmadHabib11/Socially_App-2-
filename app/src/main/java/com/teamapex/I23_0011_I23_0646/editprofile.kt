@@ -21,13 +21,13 @@ class editprofile : AppCompatActivity() {
 
         }
 
-        val done = findViewById<TextView>(R.id.doneBtn)
-        done.setOnClickListener {
-            val intent = Intent(this, profile::class.java)
-            startActivity(intent)
-            finish()
-
-        }
+      //  val done = findViewById<TextView>(R.id.doneBtn)
+//        done.setOnClickListener {
+//            val intent = Intent(this, profile::class.java)
+//            startActivity(intent)
+//            finish()
+//
+//        }
 
         val changedp = findViewById<TextView>(R.id.changePhoto)
         changedp.setOnClickListener {
