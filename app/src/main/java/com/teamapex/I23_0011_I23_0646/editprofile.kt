@@ -35,6 +35,19 @@ class editprofile : AppCompatActivity() {
             startActivity(intent)  // Just opens gallery
         }
 
+        val signout = findViewById<TextView>(R.id.signoutBtn)
+
+        signout.setOnClickListener {
+            // CLEAR SESSION
+            val sp = getSharedPreferences("user_session", MODE_PRIVATE)
+            sp.edit().clear().apply()
+
+            // GO TO LOGIN
+            val intent = Intent(this, login::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+        }
 
 
 
