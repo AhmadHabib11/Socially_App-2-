@@ -1,7 +1,9 @@
 package com.teamapex.I23_0011_I23_0646
 
+import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.android.volley.Request
@@ -20,7 +22,16 @@ class login : AppCompatActivity() {
         val signup = findViewById<TextView>(R.id.signup)
         val back = findViewById<ImageView>(R.id.backArrow)
 
+        // Check if username was passed from authorization page
+        val prefilledUsername = intent.getStringExtra("prefill_username")
+        if (!prefilledUsername.isNullOrEmpty()) {
+            identifier.setText(prefilledUsername)
+            // Focus on password field since username is already filled
+            password.requestFocus()
+        }
+
         back.setOnClickListener {
+            startActivity(Intent(this, authorization::class.java))
             finish()
         }
 
@@ -30,34 +41,64 @@ class login : AppCompatActivity() {
         }
 
         loginButton.setOnClickListener {
-            val url = "http://192.168.100.13/socially_app/login.php"
+            // Validation
+            if (identifier.text.toString().isEmpty()) {
+                Toast.makeText(this, "Please enter username or email", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (password.text.toString().isEmpty()) {
+                Toast.makeText(this, "Please enter password", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val url = "http://192.168.10.17/socially_app/login.php"
+
+            val pd = ProgressDialog(this)
+            pd.setMessage("Logging in...")
+            pd.show()
 
             val request = object : StringRequest(
                 Request.Method.POST, url,
                 { response ->
-                    val obj = JSONObject(response)
+                    pd.dismiss()
 
-                    if (obj.getInt("statuscode") == 200) {
+                    try {
+                        Log.d("LoginResponse", "Response: $response")
+                        val obj = JSONObject(response)
 
-                        val user = obj.getJSONObject("user")
+                        if (obj.getInt("statuscode") == 200) {
+                            val user = obj.getJSONObject("user")
 
-                        // SAVE SESSION
-                        val sp = getSharedPreferences("user_session", MODE_PRIVATE)
-                        val editor = sp.edit()
-                        editor.putString("userid", user.getString("id"))
-                        editor.putString("username", user.getString("username"))
-                        editor.putString("email", user.getString("email"))
-                        editor.apply()
+                            // SAVE SESSION with profile picture
+                            val sp = getSharedPreferences("user_session", MODE_PRIVATE)
+                            val editor = sp.edit()
+                            editor.putString("userid", user.getString("id"))
+                            editor.putString("username", user.getString("username"))
+                            editor.putString("first_name", user.getString("first_name"))
+                            editor.putString("last_name", user.getString("last_name"))
+                            editor.putString("email", user.getString("email"))
+                            editor.putString("profile_pic", user.getString("profile_pic"))
+                            editor.putBoolean("is_logged_in", true)
+                            editor.apply()
 
-                        startActivity(Intent(this, feedpage::class.java))
-                        finish()
+                            Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show()
 
-                    } else {
-                        Toast.makeText(this, obj.getString("message"), Toast.LENGTH_LONG).show()
+                            startActivity(Intent(this, feedpage::class.java))
+                            finish()
+
+                        } else {
+                            Toast.makeText(this, obj.getString("message"), Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        Log.e("LoginError", "Parse error: ${e.message}")
                     }
                 },
-                {
-                    Toast.makeText(this, "Network Error", Toast.LENGTH_LONG).show()
+                { error ->
+                    pd.dismiss()
+                    Toast.makeText(this, "Network Error: ${error.message}", Toast.LENGTH_LONG).show()
+                    Log.e("LoginError", "Network error: ${error.message}")
                 }
             ) {
                 override fun getParams(): MutableMap<String, String> {
