@@ -86,7 +86,7 @@ class signup : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val url = "http://192.168.10.17/socially_app/signup.php"
+            val url = "http://192.168.100.76/socially_app/signup.php"
 
             val pd = ProgressDialog(this)
             pd.setMessage("Creating Account...")

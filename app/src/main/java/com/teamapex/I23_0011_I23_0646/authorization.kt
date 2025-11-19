@@ -64,7 +64,7 @@ class authorization : AppCompatActivity() {
     }
 
     private fun loadProfilePicture(path: String, imageView: ImageView) {
-        val url = "http://192.168.100.13/socially_app/get_profile_pic.php?path=$path"
+        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$path"
 
         val request = object : StringRequest(
             Request.Method.GET, url,
