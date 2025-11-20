@@ -74,7 +74,7 @@ class feedpage : AppCompatActivity() {
     }
 
     private fun fetchStories() {
-        val url = "http://192.168.100.76/socially_app/get_stories.php"
+        val url = "http://192.168.18.109/socially_app/get_stories.php"
 
         val request = StringRequest(
             Request.Method.GET, url,

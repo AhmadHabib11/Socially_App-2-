@@ -89,7 +89,7 @@ class storyview : AppCompatActivity() {
     }
 
     private fun incrementStoryViews() {
-        val url = "http://192.168.100.76/socially_app/increment_story_view.php"
+        val url = "http://192.168.18.109/socially_app/increment_story_view.php"
 
         val request = object : StringRequest(
             Request.Method.POST, url,
