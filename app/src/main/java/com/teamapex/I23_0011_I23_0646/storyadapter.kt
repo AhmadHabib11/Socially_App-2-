@@ -3,12 +3,16 @@ package com.teamapex.I23_0011_I23_0646
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.util.Base64
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
+import org.json.JSONObject
 
 class StoryAdapter(
     private val context: Context,
@@ -34,13 +38,7 @@ class StoryAdapter(
         holder.storyUserName.text = story.username
 
         // Load profile picture
-        if (story.profilePic.isNotEmpty()) {
-            // If profile pic is a path, you might need to load it differently
-            // For now, we'll use a placeholder or default image
-            holder.storyProfileImage.setImageResource(R.drawable.settings)
-        } else {
-            holder.storyProfileImage.setImageResource(R.drawable.settings)
-        }
+        loadProfilePicture(story.profilePic, holder.storyProfileImage)
 
         // Set click listener
         holder.itemView.setOnClickListener {
@@ -49,4 +47,38 @@ class StoryAdapter(
     }
 
     override fun getItemCount(): Int = stories.size
+
+    private fun loadProfilePicture(profilePicPath: String, imageView: ImageView) {
+        if (profilePicPath.isEmpty()) {
+            imageView.setImageResource(R.drawable.settings) // Default
+            return
+        }
+
+        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+
+        val request = StringRequest(
+            com.android.volley.Request.Method.GET, url,
+            { response ->
+                try {
+                    val obj = JSONObject(response)
+
+                    if (obj.getInt("statuscode") == 200) {
+                        val imageBase64 = obj.getString("image")
+                        val decodedBytes = Base64.decode(imageBase64, Base64.DEFAULT)
+                        val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                        imageView.setImageBitmap(bitmap)
+                    }
+                } catch (e: Exception) {
+                    Log.e("StoryAdapter", "Error loading profile pic: ${e.message}")
+                    imageView.setImageResource(R.drawable.settings)
+                }
+            },
+            { error ->
+                Log.e("StoryAdapter", "Network error: ${error.message}")
+                imageView.setImageResource(R.drawable.settings)
+            }
+        )
+
+        Volley.newRequestQueue(context).add(request)
+    }
 }

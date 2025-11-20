@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import org.json.JSONObject
 
 class storyview : AppCompatActivity() {
 
@@ -43,11 +44,7 @@ class storyview : AppCompatActivity() {
         username.text = usernameStr
 
         // Load profile picture
-        if (profilePic.isNotEmpty()) {
-            // You can load profile pic here if needed
-            // For now using default
-            storyProfileImage.setImageResource(R.drawable.p7)
-        }
+        loadProfilePicture(profilePic)
 
         // Load story media (image/video)
         if (mediaBase64.isNotEmpty()) {
@@ -86,6 +83,42 @@ class storyview : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
+    }
+
+    private fun loadProfilePicture(profilePicPath: String) {
+        if (profilePicPath.isEmpty()) {
+            storyProfileImage.setImageResource(R.drawable.p7) // Default
+            return
+        }
+
+        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+
+        val request = StringRequest(
+            Request.Method.GET, url,
+            { response ->
+                try {
+                    val obj = JSONObject(response)
+
+                    if (obj.getInt("statuscode") == 200) {
+                        val imageBase64 = obj.getString("image")
+                        val decodedBytes = Base64.decode(imageBase64, Base64.DEFAULT)
+                        val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                        storyProfileImage.setImageBitmap(bitmap)
+                    } else {
+                        storyProfileImage.setImageResource(R.drawable.p7)
+                    }
+                } catch (e: Exception) {
+                    Log.e("StoryView", "Error loading profile pic: ${e.message}")
+                    storyProfileImage.setImageResource(R.drawable.p7)
+                }
+            },
+            { error ->
+                Log.e("StoryView", "Network error loading profile pic: ${error.message}")
+                storyProfileImage.setImageResource(R.drawable.p7)
+            }
+        )
+
+        Volley.newRequestQueue(this).add(request)
     }
 
     private fun incrementStoryViews() {

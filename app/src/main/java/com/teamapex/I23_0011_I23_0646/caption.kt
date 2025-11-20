@@ -1,34 +1,34 @@
 package com.teamapex.I23_0011_I23_0646
 
+import android.app.ProgressDialog
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Base64
-import android.widget.ImageView
+import android.util.Log
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-//import com.google.firebase.database.DataSnapshot
-//import com.google.firebase.database.DatabaseError
-//import com.google.firebase.database.FirebaseDatabase
-//import com.google.firebase.database.ValueEventListener
-//import com.google.firebase.auth.FirebaseAuth
+import com.android.volley.Request
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
-import java.util.*
 
 class caption : AppCompatActivity() {
     private lateinit var selectedBitmap: Bitmap
- //   private lateinit var auth: FirebaseAuth
-  //  private val database = FirebaseDatabase.getInstance()
+    private lateinit var captionImageView: ImageView
+    private lateinit var captionEditText: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.caption)
 
-        // Initialize Firebase
-    //    auth = FirebaseAuth.getInstance()
+        captionImageView = findViewById(R.id.captionImageView)
+        captionEditText = findViewById(R.id.captionEditText)
 
         // Get the image that was passed from createpost screen
         val byteArray = intent.getByteArrayExtra("imageBitmap")
@@ -38,20 +38,18 @@ class caption : AppCompatActivity() {
             selectedBitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
 
             // Display the image in ImageView
-            val imageView = findViewById<ImageView>(R.id.captionImageView)
-            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-            imageView.setImageBitmap(selectedBitmap)
+            captionImageView.scaleType = ImageView.ScaleType.CENTER_CROP
+            captionImageView.setImageBitmap(selectedBitmap)
         } else {
             Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show()
             finish()
         }
 
         // Get UI elements
-        val captionEditText = findViewById<EditText>(R.id.captionEditText)
         val postBtn = findViewById<TextView>(R.id.postBtn)
         val cancelBtn = findViewById<TextView>(R.id.cancelCaptionBtn)
 
-        // Post button - saves post to Firebase
+        // Post button - uploads post to server
         postBtn.setOnClickListener {
             val caption = captionEditText.text.toString().trim()
 
@@ -60,11 +58,8 @@ class caption : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // Show loading message
-            Toast.makeText(this, "Uploading post...", Toast.LENGTH_SHORT).show()
-
-            // Upload to Firebase
-        //    uploadPostToFirebase(caption)
+            // Upload to server
+            uploadPost(caption)
         }
 
         // Cancel button - goes back to feed without posting
@@ -75,43 +70,82 @@ class caption : AppCompatActivity() {
         }
     }
 
-    private fun scaleBitmapToFitImageView(bitmap: Bitmap, imageView: ImageView): Bitmap {
-        val width = imageView.width
-        val height = imageView.height
+    private fun uploadPost(caption: String) {
+        // Get user ID from session
+        val sp = getSharedPreferences("user_session", MODE_PRIVATE)
+        val userId = sp.getString("userid", "") ?: ""
 
-        // If ImageView dimensions are not ready, use default dimensions
-        val targetWidth = if (width > 0) width else 500
-        val targetHeight = if (height > 0) height else 500
+        if (userId.isEmpty()) {
+            Toast.makeText(this, "Please login first", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
-    }
+        // Convert bitmap to base64
+        val imageBase64 = bitmapToBase64(selectedBitmap)
 
+        val url = "http://192.168.100.76/socially_app/upload_post.php"
 
+        val pd = ProgressDialog(this)
+        pd.setMessage("Uploading post...")
+        pd.show()
 
-    private fun savePost(userId: String, userName: String, userEmail: String, caption: String) {
-        // Convert Bitmap to Base64 string
-        val stream = ByteArrayOutputStream()
-        selectedBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        val byteArray = stream.toByteArray()
-        val imageBase64 = Base64.encodeToString(byteArray, Base64.DEFAULT)
+        val request = object : StringRequest(
+            Request.Method.POST, url,
+            { response ->
+                pd.dismiss()
 
-        // Create a unique post ID
-        val postId = UUID.randomUUID().toString()
+                try {
+                    Log.d("PostUpload", "Response: $response")
+                    val obj = JSONObject(response)
 
-        // Create the post object with actual username
-        val post = hashMapOf(
-            "postId" to postId,
-            "userId" to userId,
-            "userName" to userName,  // This now contains the actual username!
-            "userEmail" to userEmail,
-            "caption" to caption,
-            "imageBase64" to imageBase64,
-            "timestamp" to System.currentTimeMillis(),
-            "likes" to 0,
-            "comments" to emptyMap<String, Any>()
+                    if (obj.getInt("statuscode") == 200) {
+                        Toast.makeText(this, "Post uploaded successfully!", Toast.LENGTH_SHORT).show()
+
+                        // Navigate back to feed page
+                        val intent = Intent(this, feedpage::class.java)
+                        startActivity(intent)
+                        finish()
+
+                    } else {
+                        Toast.makeText(this, obj.getString("message"), Toast.LENGTH_LONG).show()
+                    }
+
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    Log.e("PostUpload", "Parse error: ${e.message}")
+                }
+            },
+            { error ->
+                pd.dismiss()
+                Toast.makeText(this, "Network Error: ${error.message}", Toast.LENGTH_LONG).show()
+                Log.e("PostUpload", "Network error: ${error.message}")
+            }
+        ) {
+            override fun getParams(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["user_id"] = userId
+                params["caption"] = caption
+                params["image_data"] = imageBase64
+                return params
+            }
+        }
+
+        // Increase timeout for large image uploads
+        request.setRetryPolicy(
+            com.android.volley.DefaultRetryPolicy(
+                30000, // 30 seconds timeout
+                com.android.volley.DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                com.android.volley.DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            )
         )
 
+        Volley.newRequestQueue(this).add(request)
+    }
 
-
+    private fun bitmapToBase64(bitmap: Bitmap): String {
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
+        val byteArray = byteArrayOutputStream.toByteArray()
+        return Base64.encodeToString(byteArray, Base64.DEFAULT)
     }
 }
