@@ -69,7 +69,7 @@ class storyactivity : AppCompatActivity() {
             return
         }
 
-        val url = "http://192.168.100.76/socially_app/get_stories.php?user_id=$userId"
+        val url = "http://192.168.18.109/socially_app/get_stories.php?user_id=$userId"
 
         val request = StringRequest(
             Request.Method.GET, url,

@@ -23,7 +23,6 @@ class authorization : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContentView(R.layout.authorization)
 
         val profilePic = findViewById<ImageView>(R.id.profilePic)
@@ -33,38 +32,60 @@ class authorization : AppCompatActivity() {
         val switchAccounts = findViewById<TextView>(R.id.switchaccounts)
 
         val sp = getSharedPreferences("user_session", MODE_PRIVATE)
+        val isLoggedIn = sp.getBoolean("is_logged_in", false)
 
-        // Load saved user data
-        val lastUsername = sp.getString("username", "Guest")
-        val lastPic = sp.getString("profile_pic", null)
+        // Load the LAST logged-in user's data (even if logged out)
+        val lastUsername = sp.getString("last_username", null)
+        val lastFirstName = sp.getString("last_first_name", null)
+        val lastLastName = sp.getString("last_last_name", null)
+        val lastPic = sp.getString("last_profile_pic", null)
 
-        usernameText.text = lastUsername
+        // Display name (first + last) or username if name not available
+        if (!lastFirstName.isNullOrEmpty() && !lastLastName.isNullOrEmpty()) {
+            usernameText.text = "$lastFirstName $lastLastName"
+        } else if (!lastUsername.isNullOrEmpty()) {
+            usernameText.text = lastUsername
+        } else {
+            usernameText.text = "Guest"
+        }
 
         // Load profile picture if exists
         if (!lastPic.isNullOrEmpty() && lastPic != "null" && lastPic != "0") {
             loadProfilePicture(lastPic, profilePic)
         }
 
-        // Login button
+        // Login button behavior changes based on login status
         loginButton.setOnClickListener {
-            val intent = Intent(this, login::class.java)
-            intent.putExtra("prefill_username", lastUsername)
-            startActivity(intent)
+            if (isLoggedIn) {
+                // User is already logged in - go directly to feedpage (quick login)
+                startActivity(Intent(this, feedpage::class.java))
+                finish()
+            } else {
+                // User is logged out - go to login page with prefilled username
+                val intent = Intent(this, login::class.java)
+                if (!lastUsername.isNullOrEmpty()) {
+                    intent.putExtra("prefill_username", lastUsername)
+                }
+                startActivity(intent)
+                finish()
+            }
         }
 
-        // Switch accounts
+        // Switch accounts - goes to login page without prefill
         switchAccounts.setOnClickListener {
             startActivity(Intent(this, login::class.java))
+            finish()
         }
 
         // Create account
         createAccountBtn.setOnClickListener {
             startActivity(Intent(this, signup::class.java))
+            finish()
         }
     }
 
     private fun loadProfilePicture(path: String, imageView: ImageView) {
-        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$path"
+        val url = "http://192.168.18.109/socially_app/get_profile_pic.php?path=$path"
 
         val request = object : StringRequest(
             Request.Method.GET, url,

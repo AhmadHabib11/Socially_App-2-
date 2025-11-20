@@ -19,7 +19,7 @@ class login : AppCompatActivity() {
         val identifier = findViewById<EditText>(R.id.username)
         val password = findViewById<EditText>(R.id.password)
         val loginButton = findViewById<TextView>(R.id.loginbar)
-        val signup = findViewById<TextView>(R.id.signup)
+        val signuplink = findViewById<TextView>(R.id.signup)
         val back = findViewById<ImageView>(R.id.backArrow)
 
         // Check if username was passed from authorization page
@@ -35,7 +35,7 @@ class login : AppCompatActivity() {
             finish()
         }
 
-        signup.setOnClickListener {
+        signuplink.setOnClickListener {
             startActivity(Intent(this, signup::class.java))
             finish()
         }
@@ -52,7 +52,7 @@ class login : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val url = "http://192.168.100.76/socially_app/login.php"
+            val url = "http://192.168.18.109/socially_app/login.php"
 
             val pd = ProgressDialog(this)
             pd.setMessage("Logging in...")
@@ -70,9 +70,11 @@ class login : AppCompatActivity() {
                         if (obj.getInt("statuscode") == 200) {
                             val user = obj.getJSONObject("user")
 
-                            // SAVE SESSION with profile picture
+                            // SAVE SESSION DATA
                             val sp = getSharedPreferences("user_session", MODE_PRIVATE)
                             val editor = sp.edit()
+
+                            // Current session data (for logged-in state)
                             editor.putString("userid", user.getString("id"))
                             editor.putString("username", user.getString("username"))
                             editor.putString("first_name", user.getString("first_name"))
@@ -80,6 +82,13 @@ class login : AppCompatActivity() {
                             editor.putString("email", user.getString("email"))
                             editor.putString("profile_pic", user.getString("profile_pic"))
                             editor.putBoolean("is_logged_in", true)
+
+                            // SAVE AS "LAST" USER (persists even after logout)
+                            editor.putString("last_username", user.getString("username"))
+                            editor.putString("last_first_name", user.getString("first_name"))
+                            editor.putString("last_last_name", user.getString("last_name"))
+                            editor.putString("last_profile_pic", user.getString("profile_pic"))
+
                             editor.apply()
 
                             Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show()
