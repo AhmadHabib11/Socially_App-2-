@@ -13,4 +13,13 @@ data class Story(
     val createdAt: String,
     val expiresAt: String,
     val views: Int
-)
+) {
+    // Helper function to get display name
+    fun getDisplayName(currentUserId: String): String {
+        return if (userId.toString() == currentUserId) {
+            "Your Story"
+        } else {
+            username
+        }
+    }
+}

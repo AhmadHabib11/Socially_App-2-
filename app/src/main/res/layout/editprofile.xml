@@ -79,6 +79,7 @@
                     android:src="@drawable/story1"
                     android:background="@drawable/profilestorycircle"
                     android:scaleType="centerCrop"
+                    android:clipToOutline="true"
                     android:layout_centerHorizontal="true"
                     android:layout_marginTop="10dp" />
 

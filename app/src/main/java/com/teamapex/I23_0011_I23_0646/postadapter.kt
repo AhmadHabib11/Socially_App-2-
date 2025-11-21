@@ -123,7 +123,7 @@ class PostAdapter(
             return
         }
 
-        val url = "http://192.168.18.109/socially_app/get_profile_pic.php?path=$profilePicPath"
+        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
 
         val request = StringRequest(
             Request.Method.GET, url,

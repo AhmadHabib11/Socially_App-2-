@@ -21,12 +21,15 @@ import org.json.JSONObject
 
 class authorization : AppCompatActivity() {
 
+    private lateinit var profilePic: ImageView
+    private lateinit var usernameText: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.authorization)
 
-        val profilePic = findViewById<ImageView>(R.id.profilePic)
-        val usernameText = findViewById<TextView>(R.id.usernameText)
+        profilePic = findViewById(R.id.profilePic)
+        usernameText = findViewById(R.id.usernameText)
         val loginButton = findViewById<TextView>(R.id.loginbutton)
         val createAccountBtn = findViewById<TextView>(R.id.signupText)
         val switchAccounts = findViewById<TextView>(R.id.switchaccounts)
@@ -34,24 +37,15 @@ class authorization : AppCompatActivity() {
         val sp = getSharedPreferences("user_session", MODE_PRIVATE)
         val isLoggedIn = sp.getBoolean("is_logged_in", false)
 
-        // Load the LAST logged-in user's data (even if logged out)
-        val lastUsername = sp.getString("last_username", null)
-        val lastFirstName = sp.getString("last_first_name", null)
-        val lastLastName = sp.getString("last_last_name", null)
-        val lastPic = sp.getString("last_profile_pic", null)
+        // Get the last user ID to fetch fresh data
+        val lastUserId = sp.getString("last_user_id", null)
 
-        // Display name (first + last) or username if name not available
-        if (!lastFirstName.isNullOrEmpty() && !lastLastName.isNullOrEmpty()) {
-            usernameText.text = "$lastFirstName $lastLastName"
-        } else if (!lastUsername.isNullOrEmpty()) {
-            usernameText.text = lastUsername
+        if (!lastUserId.isNullOrEmpty()) {
+            // Fetch latest user data from database
+            fetchLatestUserData(lastUserId)
         } else {
+            // No previous user - show guest
             usernameText.text = "Guest"
-        }
-
-        // Load profile picture if exists
-        if (!lastPic.isNullOrEmpty() && lastPic != "null" && lastPic != "0") {
-            loadProfilePicture(lastPic, profilePic)
         }
 
         // Login button behavior changes based on login status
@@ -61,11 +55,15 @@ class authorization : AppCompatActivity() {
                 startActivity(Intent(this, feedpage::class.java))
                 finish()
             } else {
-                // User is logged out - go to login page with prefilled username
+                // User is logged out - go to login page
                 val intent = Intent(this, login::class.java)
-                if (!lastUsername.isNullOrEmpty()) {
-                    intent.putExtra("prefill_username", lastUsername)
+
+                // Prefill with current displayed username
+                val displayedUsername = usernameText.text.toString()
+                if (displayedUsername != "Guest") {
+                    intent.putExtra("prefill_username", displayedUsername)
                 }
+
                 startActivity(intent)
                 finish()
             }
@@ -84,8 +82,65 @@ class authorization : AppCompatActivity() {
         }
     }
 
+    private fun fetchLatestUserData(userId: String) {
+        val url = "http://192.168.100.76/socially_app/get_user_data.php?user_id=$userId"
+
+        val request = StringRequest(
+            Request.Method.GET, url,
+            { response ->
+                try {
+                    Log.d("Authorization", "Response: $response")
+                    val obj = JSONObject(response)
+
+                    if (obj.getInt("statuscode") == 200) {
+                        val user = obj.getJSONObject("user")
+
+                        // Get latest username
+                        val username = user.getString("username")
+                        usernameText.text = username
+
+                        // Get latest profile picture
+                        val profilePicPath = user.getString("profile_pic")
+                        if (!profilePicPath.isNullOrEmpty() && profilePicPath != "null" && profilePicPath != "0") {
+                            loadProfilePicture(profilePicPath, profilePic)
+                        }
+
+                        // Update SharedPreferences with latest data
+                        val sp = getSharedPreferences("user_session", MODE_PRIVATE)
+                        val editor = sp.edit()
+                        editor.putString("last_username", username)
+                        editor.putString("last_profile_pic", profilePicPath)
+                        editor.apply()
+
+                    } else {
+                        usernameText.text = "Guest"
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("Authorization", "Error: ${e.message}")
+                    usernameText.text = "Guest"
+                }
+            },
+            { error ->
+                Log.e("Authorization", "Network error: ${error.message}")
+
+                // Fallback to cached username if network fails
+                val sp = getSharedPreferences("user_session", MODE_PRIVATE)
+                val cachedUsername = sp.getString("last_username", "Guest")
+                usernameText.text = cachedUsername ?: "Guest"
+
+                val cachedPic = sp.getString("last_profile_pic", null)
+                if (!cachedPic.isNullOrEmpty() && cachedPic != "null" && cachedPic != "0") {
+                    loadProfilePicture(cachedPic, profilePic)
+                }
+            }
+        )
+
+        Volley.newRequestQueue(this).add(request)
+    }
+
     private fun loadProfilePicture(path: String, imageView: ImageView) {
-        val url = "http://192.168.18.109/socially_app/get_profile_pic.php?path=$path"
+        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$path"
 
         val request = object : StringRequest(
             Request.Method.GET, url,

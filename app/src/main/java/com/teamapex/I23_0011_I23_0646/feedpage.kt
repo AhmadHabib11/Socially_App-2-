@@ -41,7 +41,7 @@ class feedpage : AppCompatActivity() {
         storyRecyclerView = findViewById(R.id.storyRecyclerView)
         storyRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
-        storyAdapter = StoryAdapter(this, storiesList) { story ->
+        storyAdapter = StoryAdapter(this, storiesList, currentUserId) { story ->
             openStoryView(story)
         }
         storyRecyclerView.adapter = storyAdapter
@@ -117,7 +117,7 @@ class feedpage : AppCompatActivity() {
             return
         }
 
-        val url = "http://192.168.18.109/socially_app/get_profile_pic.php?path=$profilePicPath"
+        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -144,7 +144,7 @@ class feedpage : AppCompatActivity() {
     }
 
     private fun fetchStories() {
-        val url = "http://192.168.18.109/socially_app/get_stories.php"
+        val url = "http://192.168.100.76/socially_app/get_stories.php"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -178,6 +178,15 @@ class feedpage : AppCompatActivity() {
                             storiesList.add(story)
                         }
 
+                        // Sort stories: Current user's stories first, then by newest
+                        storiesList.sortWith(compareBy<Story> {
+                            // Put current user's stories first (0), others second (1)
+                            if (it.userId.toString() == currentUserId) 0 else 1
+                        }.thenByDescending {
+                            // Within each group, sort by creation time (newest first)
+                            it.createdAt
+                        })
+
                         storyAdapter.notifyDataSetChanged()
                         Log.d("Stories", "Loaded ${storiesList.size} stories")
 
@@ -198,7 +207,7 @@ class feedpage : AppCompatActivity() {
     }
 
     private fun fetchPosts() {
-        val url = "http://192.168.18.109/socially_app/get_posts.php?current_user_id=$currentUserId"
+        val url = "http://192.168.100.76/socially_app/get_posts.php?current_user_id=$currentUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -264,7 +273,7 @@ class feedpage : AppCompatActivity() {
     }
 
     private fun handleLikeClick(post: Post) {
-        val url = "http://192.168.18.109/socially_app/like_post.php"
+        val url = "http://192.168.100.76/socially_app/like_post.php"
 
         val request = object : StringRequest(
             Request.Method.POST, url,
@@ -329,7 +338,8 @@ class feedpage : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh posts to get updated like/comment counts
+        // Refresh posts and stories to get updated counts and new content
+        fetchStories()
         fetchPosts()
     }
 }

@@ -27,7 +27,7 @@ class SearchUsersActivity : AppCompatActivity() {
     private var currentUserId = ""
 
     companion object {
-        private const val BASE_URL = "http://192.168.18.109/socially_app/" // Change for real device
+        private const val BASE_URL = "http://192.168.100.76/socially_app/" // Change for real device
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,7 +49,9 @@ class SearchUsersActivity : AppCompatActivity() {
         val backArrow = findViewById<ImageView>(R.id.backArrow)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
-        userAdapter = UserSearchAdapter(filteredUsers) { user ->
+
+        // FIX: Pass 'this' (Context) as the first parameter
+        userAdapter = UserSearchAdapter(this, filteredUsers) { user ->
             startChatWithUser(user)
         }
         recyclerView.adapter = userAdapter
@@ -109,7 +111,8 @@ class SearchUsersActivity : AppCompatActivity() {
                                         firstName = userJson.getString("first_name"),
                                         lastName = userJson.getString("last_name"),
                                         email = userJson.getString("email"),
-                                        dp = userJson.getString("profile_pic")
+                                        dp = userJson.getString("profile_pic"),
+                                        followStatus = "none" // Default value
                                     )
                                     allUsers.add(user)
                                 }

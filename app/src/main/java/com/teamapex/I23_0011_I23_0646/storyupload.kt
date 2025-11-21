@@ -82,7 +82,7 @@ class storyupload : AppCompatActivity() {
             return
         }
 
-        val url = "http://192.168.18.109/socially_app/upload_story.php"
+        val url = "http://192.168.100.76/socially_app/upload_story.php"
 
         val pd = ProgressDialog(this)
         pd.setMessage("Uploading story...")

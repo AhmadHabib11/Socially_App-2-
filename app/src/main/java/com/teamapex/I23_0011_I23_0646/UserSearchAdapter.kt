@@ -1,13 +1,22 @@
 package com.teamapex.I23_0011_I23_0646
 
+import android.content.Context
+import android.graphics.BitmapFactory
+import android.util.Base64
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.android.volley.Request
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
+import org.json.JSONObject
 
 class UserSearchAdapter(
+    private val context: Context,
     private val users: MutableList<MyData>,
     private val onClick: (MyData) -> Unit
 ) : RecyclerView.Adapter<UserSearchAdapter.UserViewHolder>() {
@@ -19,7 +28,7 @@ class UserSearchAdapter(
     }
 
     override fun onBindViewHolder(holder: UserViewHolder, position: Int) {
-        holder.bind(users[position], onClick)
+        holder.bind(users[position], context, onClick)
     }
 
     override fun getItemCount() = users.size
@@ -34,26 +43,71 @@ class UserSearchAdapter(
         private val profileImage: ImageView = itemView.findViewById(R.id.profileImage)
         private val username: TextView = itemView.findViewById(R.id.tvUsername)
         private val fullName: TextView = itemView.findViewById(R.id.tvFullName)
-        private val statusIndicator: View = itemView.findViewById(R.id.statusIndicator)
         private val statusText: TextView = itemView.findViewById(R.id.tvStatusText)
 
-        fun bind(user: MyData, onClick: (MyData) -> Unit) {
-            username.text = user.name
-            fullName.text = user.name // You might want a separate fullName field in MyData
+        fun bind(user: MyData, context: Context, onClick: (MyData) -> Unit) {
+            username.text = user.name // This is the username
+            fullName.text = "${user.firstName} ${user.lastName}"
 
-            // Optionally show online status if you have that data
-            // statusText.visibility = if (user.isOnline) View.VISIBLE else View.GONE
-            // statusIndicator.visibility = if (user.isOnline) View.VISIBLE else View.GONE
+            // Show follow status
+            when(user.followStatus) {
+                "accepted" -> {
+                    statusText.text = "Following"
+                    statusText.setTextColor(context.getColor(R.color.blue))
+                    statusText.visibility = View.VISIBLE
+                }
+                "pending" -> {
+                    statusText.text = "Requested"
+                    statusText.setTextColor(context.getColor(R.color.gray_text))
+                    statusText.visibility = View.VISIBLE
+                }
+                else -> {
+                    statusText.visibility = View.GONE
+                }
+            }
 
-            // Load profile image using Glide if you have the URL
-            // Glide.with(itemView.context)
-            //     .load(user.profileImageUrl)
-            //     .placeholder(R.drawable.profilepic)
-            //     .into(profileImage)
+            // Load profile picture
+            loadProfilePicture(user.dp, profileImage, context)
 
             itemView.setOnClickListener {
                 onClick(user)
             }
+        }
+
+        private fun loadProfilePicture(profilePicPath: String, imageView: ImageView, context: Context) {
+            if (profilePicPath.isEmpty()) {
+                imageView.setImageResource(R.drawable.story1)
+                return
+            }
+
+            val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+
+            val request = StringRequest(
+                Request.Method.GET, url,
+                { response ->
+                    try {
+                        val obj = JSONObject(response)
+
+                        if (obj.getInt("statuscode") == 200) {
+                            val imageBase64 = obj.getString("image")
+                            val decodedBytes = Base64.decode(imageBase64, Base64.DEFAULT)
+                            val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                            imageView.setImageBitmap(bitmap)
+                        } else {
+                            imageView.setImageResource(R.drawable.story1)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("UserSearchAdapter", "Error: ${e.message}")
+                        imageView.setImageResource(R.drawable.story1)
+                    }
+                },
+                { error ->
+                    Log.e("UserSearchAdapter", "Network error: ${error.message}")
+                    imageView.setImageResource(R.drawable.story1)
+                }
+            )
+
+            Volley.newRequestQueue(context).add(request)
         }
     }
 }

@@ -50,7 +50,7 @@ class dmscreen : AppCompatActivity() {
 
     companion object {
         private const val PICK_IMAGE = 1
-        private const val BASE_URL = "http://192.168.18.109/socially_app/" // Change for real device
+        private const val BASE_URL = "http://192.168.100.76/socially_app/" // Change for real device
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

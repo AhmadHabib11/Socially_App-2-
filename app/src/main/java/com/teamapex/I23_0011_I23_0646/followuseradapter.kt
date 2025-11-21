@@ -10,55 +10,60 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import org.json.JSONObject
 
-class StoryAdapter(
+class FollowUserAdapter(
     private val context: Context,
-    private val stories: List<Story>,
-    private val currentUserId: String,  // Add this parameter
-    private val onStoryClick: (Story) -> Unit
-) : RecyclerView.Adapter<StoryAdapter.StoryViewHolder>() {
+    private var users: List<FollowUser>,
+    private val onUserClick: (FollowUser) -> Unit
+) : RecyclerView.Adapter<FollowUserAdapter.ViewHolder>() {
 
-    class StoryViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val storyProfileImage: ImageView = view.findViewById(R.id.storyProfileImage)
-        val storyUserName: TextView = view.findViewById(R.id.storyUserName)
+    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val profilePic: ImageView = view.findViewById(R.id.profilePic)
+        val notificationText: TextView = view.findViewById(R.id.notificationText)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StoryViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_story, parent, false)
-        return StoryViewHolder(view)
+            .inflate(R.layout.item_notification_follow, parent, false)
+        return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: StoryViewHolder, position: Int) {
-        val story = stories[position]
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val user = users[position]
 
-        // Set username - "Your Story" for current user, actual username for others
-        holder.storyUserName.text = story.getDisplayName(currentUserId)
+        // Set text
+        holder.notificationText.text = "${user.username} started following you"
 
         // Load profile picture
-        loadProfilePicture(story.profilePic, holder.storyProfileImage)
+        loadProfilePicture(user.profilePic, holder.profilePic)
 
-        // Set click listener
+        // Click listener
         holder.itemView.setOnClickListener {
-            onStoryClick(story)
+            onUserClick(user)
         }
     }
 
-    override fun getItemCount(): Int = stories.size
+    override fun getItemCount(): Int = users.size
+
+    fun updateUsers(newUsers: List<FollowUser>) {
+        users = newUsers
+        notifyDataSetChanged()
+    }
 
     private fun loadProfilePicture(profilePicPath: String, imageView: ImageView) {
         if (profilePicPath.isEmpty()) {
-            imageView.setImageResource(R.drawable.settings) // Default
+            imageView.setImageResource(R.drawable.settings)
             return
         }
 
         val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
 
         val request = StringRequest(
-            com.android.volley.Request.Method.GET, url,
+            Request.Method.GET, url,
             { response ->
                 try {
                     val obj = JSONObject(response)
@@ -68,14 +73,16 @@ class StoryAdapter(
                         val decodedBytes = Base64.decode(imageBase64, Base64.DEFAULT)
                         val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
                         imageView.setImageBitmap(bitmap)
+                    } else {
+                        imageView.setImageResource(R.drawable.settings)
                     }
                 } catch (e: Exception) {
-                    Log.e("StoryAdapter", "Error loading profile pic: ${e.message}")
+                    Log.e("FollowUserAdapter", "Error: ${e.message}")
                     imageView.setImageResource(R.drawable.settings)
                 }
             },
             { error ->
-                Log.e("StoryAdapter", "Network error: ${error.message}")
+                Log.e("FollowUserAdapter", "Network error: ${error.message}")
                 imageView.setImageResource(R.drawable.settings)
             }
         )

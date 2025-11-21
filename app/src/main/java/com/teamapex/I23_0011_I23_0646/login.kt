@@ -52,7 +52,7 @@ class login : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val url = "http://192.168.18.109/socially_app/login.php"
+            val url = "http://192.168.100.76/socially_app/login.php"
 
             val pd = ProgressDialog(this)
             pd.setMessage("Logging in...")
@@ -84,6 +84,7 @@ class login : AppCompatActivity() {
                             editor.putBoolean("is_logged_in", true)
 
                             // SAVE AS "LAST" USER (persists even after logout)
+                            editor.putString("last_user_id", user.getString("id"))
                             editor.putString("last_username", user.getString("username"))
                             editor.putString("last_first_name", user.getString("first_name"))
                             editor.putString("last_last_name", user.getString("last_name"))

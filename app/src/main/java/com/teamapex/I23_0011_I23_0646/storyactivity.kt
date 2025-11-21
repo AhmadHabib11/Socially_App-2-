@@ -33,6 +33,13 @@ class storyactivity : AppCompatActivity() {
         storyProfileImage = findViewById(R.id.storyProfileImage)
         username = findViewById(R.id.username)
 
+        // Get current user info from session
+        val sp = getSharedPreferences("user_session", MODE_PRIVATE)
+        val currentUserProfilePic = sp.getString("profile_pic", "") ?: ""
+
+        // Load current user's profile picture
+        loadProfilePicture(currentUserProfilePic)
+
         // Fetch user's own stories
         fetchUserStories()
 
@@ -58,6 +65,42 @@ class storyactivity : AppCompatActivity() {
         }
     }
 
+    private fun loadProfilePicture(profilePicPath: String) {
+        if (profilePicPath.isEmpty()) {
+            storyProfileImage.setImageResource(R.drawable.gurskydp) // Default
+            return
+        }
+
+        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+
+        val request = StringRequest(
+            Request.Method.GET, url,
+            { response ->
+                try {
+                    val obj = JSONObject(response)
+
+                    if (obj.getInt("statuscode") == 200) {
+                        val imageBase64 = obj.getString("image")
+                        val decodedBytes = Base64.decode(imageBase64, Base64.DEFAULT)
+                        val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                        storyProfileImage.setImageBitmap(bitmap)
+                    } else {
+                        storyProfileImage.setImageResource(R.drawable.gurskydp)
+                    }
+                } catch (e: Exception) {
+                    Log.e("StoryActivity", "Error loading profile pic: ${e.message}")
+                    storyProfileImage.setImageResource(R.drawable.gurskydp)
+                }
+            },
+            { error ->
+                Log.e("StoryActivity", "Network error loading profile pic: ${error.message}")
+                storyProfileImage.setImageResource(R.drawable.gurskydp)
+            }
+        )
+
+        Volley.newRequestQueue(this).add(request)
+    }
+
     private fun fetchUserStories() {
         // Get logged-in user's ID
         val sp = getSharedPreferences("user_session", MODE_PRIVATE)
@@ -69,7 +112,7 @@ class storyactivity : AppCompatActivity() {
             return
         }
 
-        val url = "http://192.168.18.109/socially_app/get_stories.php?user_id=$userId"
+        val url = "http://192.168.100.76/socially_app/get_stories.php?user_id=$userId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -147,11 +190,6 @@ class storyactivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e("StoryActivity", "Error decoding image: ${e.message}")
             }
-        }
-
-        // Load profile picture (if available)
-        if (story.profilePic.isNotEmpty()) {
-            storyProfileImage.setImageResource(R.drawable.gurskydp)
         }
 
         // Update progress bars based on story count and current index

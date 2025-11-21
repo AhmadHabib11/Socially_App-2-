@@ -6,5 +6,6 @@ data class MyData(
     val firstName: String = "",
     val lastName: String = "",
     val email: String = "",
-    val dp: String = "" // profile picture
+    val dp: String = "", // profile picture
+    val followStatus: String = "none" // "none", "pending", "accepted"
 )
