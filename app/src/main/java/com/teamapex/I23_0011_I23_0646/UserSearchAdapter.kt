@@ -47,24 +47,19 @@ class UserSearchAdapter(
 
         fun bind(user: MyData, context: Context, onClick: (MyData) -> Unit) {
             username.text = user.name // This is the username
-            fullName.text = "${user.firstName} ${user.lastName}"
 
-            // Show follow status
-            when(user.followStatus) {
-                "accepted" -> {
-                    statusText.text = "Following"
-                    statusText.setTextColor(context.getColor(R.color.blue))
-                    statusText.visibility = View.VISIBLE
-                }
-                "pending" -> {
-                    statusText.text = "Requested"
-                    statusText.setTextColor(context.getColor(R.color.gray_text))
-                    statusText.visibility = View.VISIBLE
-                }
-                else -> {
-                    statusText.visibility = View.GONE
-                }
+            // Show full name if available, otherwise hide
+            if (user.firstName.isNotEmpty() || user.lastName.isNotEmpty()) {
+                fullName.text = "${user.firstName} ${user.lastName}".trim()
+                fullName.visibility = View.VISIBLE
+            } else {
+                fullName.visibility = View.GONE
             }
+
+            // Always show "Start a conversation" in the search screen
+            statusText.text = "Start a conversation"
+            statusText.setTextColor(context.getColor(android.R.color.darker_gray))
+            statusText.visibility = View.VISIBLE
 
             // Load profile picture
             loadProfilePicture(user.dp, profileImage, context)
@@ -80,7 +75,7 @@ class UserSearchAdapter(
                 return
             }
 
-            val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+            val url = "http://192.168.18.35/socially_app/get_profile_pic.php?path=$profilePicPath"
 
             val request = StringRequest(
                 Request.Method.GET, url,

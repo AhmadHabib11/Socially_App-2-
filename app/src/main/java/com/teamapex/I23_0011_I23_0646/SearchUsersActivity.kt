@@ -20,6 +20,7 @@ class SearchUsersActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var userAdapter: UserSearchAdapter
     private lateinit var sessionManager: SessionManager
+    private lateinit var dbHelper: MessageDatabaseHelper
 
     private val client = OkHttpClient()
     private val allUsers = mutableListOf<MyData>()
@@ -27,7 +28,7 @@ class SearchUsersActivity : AppCompatActivity() {
     private var currentUserId = ""
 
     companion object {
-        private const val BASE_URL = "http://192.168.100.76/socially_app/" // Change for real device
+        private const val BASE_URL = "http://192.168.18.35/socially_app/"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,6 +36,7 @@ class SearchUsersActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search_users)
 
         sessionManager = SessionManager(this)
+        dbHelper = MessageDatabaseHelper(this)
         currentUserId = sessionManager.getUserId() ?: ""
 
         if (currentUserId.isEmpty()) {
@@ -43,24 +45,31 @@ class SearchUsersActivity : AppCompatActivity() {
             return
         }
 
-        // Setup UI
+        setupViews()
+        setupRecyclerView()
+        setupSearchFunctionality()
+        loadUsers()
+    }
+
+    private fun setupViews() {
         searchBar = findViewById(R.id.searchEditText)
         recyclerView = findViewById(R.id.rvUsers)
         val backArrow = findViewById<ImageView>(R.id.backArrow)
 
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        backArrow.setOnClickListener {
+            finish()
+        }
+    }
 
-        // FIX: Pass 'this' (Context) as the first parameter
+    private fun setupRecyclerView() {
+        recyclerView.layoutManager = LinearLayoutManager(this)
         userAdapter = UserSearchAdapter(this, filteredUsers) { user ->
             startChatWithUser(user)
         }
         recyclerView.adapter = userAdapter
+    }
 
-        backArrow.setOnClickListener {
-            finish()
-        }
-
-        // Setup search functionality
+    private fun setupSearchFunctionality() {
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -68,9 +77,6 @@ class SearchUsersActivity : AppCompatActivity() {
             }
             override fun afterTextChanged(s: Editable?) {}
         })
-
-        // Load all users
-        loadUsers()
     }
 
     private fun loadUsers() {
@@ -94,7 +100,7 @@ class SearchUsersActivity : AppCompatActivity() {
                 val responseData = response.body?.string()
                 runOnUiThread {
                     try {
-                        val json = JSONObject(responseData)
+                        val json = JSONObject(responseData ?: "{}")
                         if (json.getInt("statuscode") == 200) {
                             val usersArray = json.getJSONArray("users")
                             allUsers.clear()
@@ -108,11 +114,11 @@ class SearchUsersActivity : AppCompatActivity() {
                                     val user = MyData(
                                         id = userId,
                                         name = userJson.getString("username"),
-                                        firstName = userJson.getString("first_name"),
-                                        lastName = userJson.getString("last_name"),
-                                        email = userJson.getString("email"),
-                                        dp = userJson.getString("profile_pic"),
-                                        followStatus = "none" // Default value
+                                        firstName = userJson.optString("first_name", ""),
+                                        lastName = userJson.optString("last_name", ""),
+                                        email = userJson.optString("email", ""),
+                                        dp = userJson.optString("profile_pic", ""),
+                                        followStatus = "none"
                                     )
                                     allUsers.add(user)
                                 }
@@ -133,7 +139,7 @@ class SearchUsersActivity : AppCompatActivity() {
                         } else {
                             Toast.makeText(
                                 this@SearchUsersActivity,
-                                json.getString("message"),
+                                json.optString("message", "Failed to load users"),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -170,7 +176,9 @@ class SearchUsersActivity : AppCompatActivity() {
     }
 
     private fun startChatWithUser(user: MyData) {
-        // Create chat on server
+        // Show loading state
+        Toast.makeText(this, "Creating chat...", Toast.LENGTH_SHORT).show()
+
         val request = FormBody.Builder()
             .add("user1_id", currentUserId)
             .add("user2_id", user.id)
@@ -196,7 +204,7 @@ class SearchUsersActivity : AppCompatActivity() {
                 val responseData = response.body?.string()
                 runOnUiThread {
                     try {
-                        val json = JSONObject(responseData)
+                        val json = JSONObject(responseData ?: "{}")
                         if (json.getInt("statuscode") == 200) {
                             val chatId = json.getString("chat_id")
 
@@ -206,27 +214,27 @@ class SearchUsersActivity : AppCompatActivity() {
                                 userId = user.id,
                                 username = user.name,
                                 profileImage = user.dp,
-                                lastMessage = "Start a conversation", // Default message
-                                timestamp = System.currentTimeMillis() / 1000 // Current timestamp
+                                lastMessage = "Start a conversation",
+                                timestamp = System.currentTimeMillis() / 1000
                             )
 
-                            // Cache the chat locally so it appears immediately
-                            val dbHelper = MessageDatabaseHelper(this@SearchUsersActivity)
+                            // Cache the chat locally so it appears immediately in chat list
                             dbHelper.cacheChat(newChat)
 
                             // Navigate to DM screen
                             val intent = Intent(this@SearchUsersActivity, dmscreen::class.java)
+                            intent.putExtra("chatId", chatId)
                             intent.putExtra("userId", user.id)
                             intent.putExtra("username", user.name)
-                            intent.putExtra("chatId", chatId)
                             intent.putExtra("profileImage", user.dp)
                             startActivity(intent)
 
-                            // Don't finish() here - let user go back to chatlist which should now show the new chat
+                            // Finish this activity so when user goes back, they return to chatlist
+                            finish()
                         } else {
                             Toast.makeText(
                                 this@SearchUsersActivity,
-                                json.getString("message"),
+                                json.optString("message", "Failed to create chat"),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }

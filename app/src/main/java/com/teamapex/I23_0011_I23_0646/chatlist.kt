@@ -27,7 +27,7 @@ class chatlist : AppCompatActivity() {
     private var currentUserId = ""
 
     companion object {
-        private const val BASE_URL = "http://192.168.100.76/socially_app/" // Change for real device
+        private const val BASE_URL = "http://192.168.18.35/socially_app/"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,7 +40,7 @@ class chatlist : AppCompatActivity() {
         // Check if user is logged in
         if (!sessionManager.isLoggedIn() || currentUserId.isEmpty()) {
             Toast.makeText(this, "Please log in first", Toast.LENGTH_SHORT).show()
-            val intent = Intent(this, login::class.java) // Replace with your login activity
+            val intent = Intent(this, login::class.java)
             startActivity(intent)
             finish()
             return
@@ -50,7 +50,7 @@ class chatlist : AppCompatActivity() {
 
         setupViews()
         setupRecyclerView()
-        loadCachedChats()
+        refreshChats()
         startPollingChats()
     }
 
@@ -71,24 +71,22 @@ class chatlist : AppCompatActivity() {
         }
 
         newMessageBtn?.setOnClickListener {
-            // Check if user is logged in before opening search
             if (currentUserId.isNotEmpty()) {
                 val intent = Intent(this, SearchUsersActivity::class.java)
                 startActivity(intent)
             } else {
                 Toast.makeText(this, "Please log in first", Toast.LENGTH_SHORT).show()
-                // Optionally redirect to login screen
-                val intent = Intent(this, login::class.java) // Replace with your login activity
+                val intent = Intent(this, login::class.java)
                 startActivity(intent)
             }
         }
     }
 
     private fun setupRecyclerView() {
-        recyclerView = findViewById(R.id.rvChatList) // Changed from rvChats to rvChatList
+        recyclerView = findViewById(R.id.rvChatList)
         val chats = mutableListOf<Chat>()
 
-        chatAdapter = ChatAdapter(chats) { chat ->
+        chatAdapter = ChatAdapter(chats, currentUserId) { chat ->  // Add currentUserId here
             openChat(chat)
         }
 
@@ -96,16 +94,34 @@ class chatlist : AppCompatActivity() {
         recyclerView.adapter = chatAdapter
     }
 
+    private fun refreshChats() {
+        android.util.Log.d("ChatList", "Refreshing chats...")
+
+        // Clear existing chats
+        chatAdapter.clearChats()
+
+        // Load cached chats first
+        loadCachedChats()
+
+        // Then fetch from server
+        fetchChats()
+    }
+
     private fun loadCachedChats() {
         val cachedChats = dbHelper.getCachedChats()
-        cachedChats.forEach { chatAdapter.addChat(it) }
+        android.util.Log.d("ChatList", "Loading ${cachedChats.size} cached chats")
+
+        cachedChats.forEach { chat ->
+            android.util.Log.d("ChatList", "Cached chat: ${chat.username} - ${chat.chatId}")
+            chatAdapter.addChat(chat)
+        }
     }
 
     private fun startPollingChats() {
         pollingRunnable = object : Runnable {
             override fun run() {
                 fetchChats()
-                handler.postDelayed(this, 5000) // Poll every 5 seconds
+                handler.postDelayed(this, 5000)
             }
         }
         handler.post(pollingRunnable!!)
@@ -121,7 +137,7 @@ class chatlist : AppCompatActivity() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                // Silently fail for polling
+                android.util.Log.e("ChatList", "Failed to fetch chats: ${e.message}")
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -131,9 +147,9 @@ class chatlist : AppCompatActivity() {
                         val json = JSONObject(responseData)
                         if (json.getInt("statuscode") == 200) {
                             val chatsArray = json.getJSONArray("chats")
+                            android.util.Log.d("ChatList", "Fetched ${chatsArray.length()} chats from server")
 
-                            chatAdapter.clearChats()
-
+                            // Don't clear - just update existing chats
                             for (i in 0 until chatsArray.length()) {
                                 val chatJson = chatsArray.getJSONObject(i)
 
@@ -141,8 +157,8 @@ class chatlist : AppCompatActivity() {
                                     chatId = chatJson.getString("chat_id"),
                                     userId = chatJson.getString("user_id"),
                                     username = chatJson.getString("username"),
-                                    profileImage = chatJson.getString("profile_pic"),
-                                    lastMessage = chatJson.getString("last_message"),
+                                    profileImage = chatJson.optString("profile_pic", ""),
+                                    lastMessage = chatJson.optString("last_message", "Start a conversation"),
                                     timestamp = chatJson.getLong("timestamp")
                                 )
 
@@ -151,7 +167,7 @@ class chatlist : AppCompatActivity() {
                             }
                         }
                     } catch (e: Exception) {
-                        // Silently handle errors for polling
+                        android.util.Log.e("ChatList", "Error parsing chats: ${e.message}")
                     }
                 }
             }
@@ -169,9 +185,12 @@ class chatlist : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        fetchChats() // Refresh chats when returning to this screen
+        android.util.Log.d("ChatList", "onResume called")
 
-        // Also trigger a refresh after a short delay to ensure we get the latest data
+        // Refresh chats when returning to this screen
+        refreshChats()
+
+        // Also trigger another refresh after a short delay
         handler.postDelayed({
             fetchChats()
         }, 1000)

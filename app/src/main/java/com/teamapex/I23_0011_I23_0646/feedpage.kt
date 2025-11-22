@@ -117,7 +117,7 @@ class feedpage : AppCompatActivity() {
             return
         }
 
-        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+        val url = "http://192.168.18.35/socially_app/get_profile_pic.php?path=$profilePicPath"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -144,7 +144,7 @@ class feedpage : AppCompatActivity() {
     }
 
     private fun fetchStories() {
-        val url = "http://192.168.100.76/socially_app/get_stories.php"
+        val url = "http://192.168.18.35/socially_app/get_stories.php"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -207,7 +207,7 @@ class feedpage : AppCompatActivity() {
     }
 
     private fun fetchPosts() {
-        val url = "http://192.168.100.76/socially_app/get_posts.php?current_user_id=$currentUserId"
+        val url = "http://192.168.18.35/socially_app/get_posts.php?current_user_id=$currentUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -273,7 +273,7 @@ class feedpage : AppCompatActivity() {
     }
 
     private fun handleLikeClick(post: Post) {
-        val url = "http://192.168.100.76/socially_app/like_post.php"
+        val url = "http://192.168.18.35/socially_app/like_post.php"
 
         val request = object : StringRequest(
             Request.Method.POST, url,

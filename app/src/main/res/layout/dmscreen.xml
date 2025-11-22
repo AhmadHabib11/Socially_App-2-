@@ -48,7 +48,20 @@
             android:maxLines="1"
             android:ellipsize="end"/>
 
-        <!-- Voice Call Icon (NEW) -->
+        <!-- Vanish Mode Button (NEW) -->
+        <ImageView
+            android:id="@+id/vanishModeBtn"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_vanish_off"
+            android:alpha="0.5"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="15dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Vanish Mode" />
+
+        <!-- Voice Call Icon -->
         <ImageView
             android:id="@+id/voicecall"
             android:layout_width="28dp"

@@ -54,9 +54,16 @@ class MessageAdapter(
 
     override fun getItemCount() = messages.size
 
+    // SIMPLE VERSION - Just add if doesn't exist, never update
     fun addMessage(message: Message) {
-        messages.add(message)
-        notifyItemInserted(messages.size - 1)
+        val existingIndex = messages.indexOfFirst { it.id == message.id }
+
+        if (existingIndex == -1) {
+            // Message doesn't exist - add it
+            messages.add(message)
+            notifyItemInserted(messages.size - 1)
+        }
+        // If it exists - DO NOTHING, don't update it
     }
 
     fun updateMessage(messageId: Int, newContent: String) {
@@ -81,7 +88,6 @@ class MessageAdapter(
         private val ivImage: ImageView = itemView.findViewById(R.id.ivSentImage)
 
         fun bind(message: Message, onLongClick: (Message) -> Unit) {
-            // Format time
             val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
             val time = sdf.format(Date(message.timestamp * 1000))
             tvTime.text = if (message.isEdited) "$time (edited)" else time
@@ -95,7 +101,6 @@ class MessageAdapter(
                 "image" -> {
                     tvMessage.visibility = View.GONE
                     ivImage.visibility = View.VISIBLE
-                    // Load image from path or base64
                     loadImage(ivImage, message.mediaPath)
                 }
                 else -> {
@@ -113,14 +118,10 @@ class MessageAdapter(
 
         private fun loadImage(imageView: ImageView, path: String) {
             if (path.startsWith("data:image")) {
-                // Base64 encoded
                 val base64 = path.substringAfter("base64,")
                 val decodedBytes = Base64.decode(base64, Base64.DEFAULT)
                 val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
                 imageView.setImageBitmap(bitmap)
-            } else {
-                // URL or file path - you'd use Glide or Picasso here
-                // For now, just a placeholder
             }
         }
     }
@@ -131,7 +132,6 @@ class MessageAdapter(
         private val ivImage: ImageView = itemView.findViewById(R.id.ivReceivedImage)
 
         fun bind(message: Message) {
-            // Format time
             val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
             val time = sdf.format(Date(message.timestamp * 1000))
             tvTime.text = if (message.isEdited) "$time (edited)" else time

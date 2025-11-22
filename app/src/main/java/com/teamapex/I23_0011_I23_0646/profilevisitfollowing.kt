@@ -184,7 +184,7 @@ class profilevisitfollowing : AppCompatActivity() {
     }
 
     private fun loadUserProfile() {
-        val url = "http://192.168.100.76/socially_app/get_user_data.php?user_id=$visitedUserId"
+        val url = "http://192.168.18.35/socially_app/get_user_data.php?user_id=$visitedUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -255,7 +255,7 @@ class profilevisitfollowing : AppCompatActivity() {
     }
 
     private fun loadProfilePicture(profilePicPath: String) {
-        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+        val url = "http://192.168.18.35/socially_app/get_profile_pic.php?path=$profilePicPath"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -282,7 +282,7 @@ class profilevisitfollowing : AppCompatActivity() {
     }
 
     private fun fetchUserPostsCount() {
-        val url = "http://192.168.100.76/socially_app/get_user_posts_count.php?user_id=$visitedUserId"
+        val url = "http://192.168.18.35/socially_app/get_user_posts_count.php?user_id=$visitedUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -330,7 +330,7 @@ class profilevisitfollowing : AppCompatActivity() {
     }
 
     private fun unfollowUser() {
-        val url = "http://192.168.100.76/socially_app/unfollow.php"
+        val url = "http://192.168.18.35/socially_app/unfollow.php"
 
         val request = object : StringRequest(
             Request.Method.POST, url,
