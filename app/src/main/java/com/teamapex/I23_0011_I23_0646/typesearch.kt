@@ -146,7 +146,7 @@ class typesearch : AppCompatActivity() {
         emptyView.visibility = View.GONE
         searchResultsRecyclerView.visibility = View.GONE
 
-        val url = "http://192.168.18.35/socially_app/search_users.php?query=$query&current_user_id=$currentUserId&filter=$currentFilter"
+        val url = "http://192.168.100.76/socially_app/search_users.php?query=$query&current_user_id=$currentUserId&filter=$currentFilter"
 
         val request = StringRequest(
             Request.Method.GET, url,

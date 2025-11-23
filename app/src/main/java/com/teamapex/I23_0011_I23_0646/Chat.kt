@@ -7,6 +7,8 @@ data class Chat(
     val profileImage: String = "",
     val lastMessage: String = "",
     val timestamp: Long = 0,
-    val lastMessageSenderId: String = "", // To know if we sent it
-    val deliveryStatus: String = "sent" // For messages we sent
+    val lastMessageSenderId: String = "",
+    val deliveryStatus: String = "sent",
+    val isOnline: Boolean = false,
+    val lastSeen: Long = 0
 )

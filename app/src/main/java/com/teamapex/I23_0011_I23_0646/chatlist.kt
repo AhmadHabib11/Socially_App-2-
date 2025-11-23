@@ -19,6 +19,7 @@ class chatlist : AppCompatActivity() {
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var dbHelper: MessageDatabaseHelper
     private lateinit var sessionManager: SessionManager
+    private lateinit var onlineStatusManager: OnlineStatusManager
 
     private val client = OkHttpClient()
     private val handler = Handler(Looper.getMainLooper())
@@ -27,7 +28,7 @@ class chatlist : AppCompatActivity() {
     private var currentUserId = ""
 
     companion object {
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://192.168.100.76/socially_app/"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +48,10 @@ class chatlist : AppCompatActivity() {
         }
 
         dbHelper = MessageDatabaseHelper(this)
+        onlineStatusManager = OnlineStatusManager(this)
+
+        // Start tracking this user's online status
+        onlineStatusManager.startTracking(currentUserId)
 
         setupViews()
         setupRecyclerView()
@@ -86,7 +91,7 @@ class chatlist : AppCompatActivity() {
         recyclerView = findViewById(R.id.rvChatList)
         val chats = mutableListOf<Chat>()
 
-        chatAdapter = ChatAdapter(chats, currentUserId) { chat ->  // Add currentUserId here
+        chatAdapter = ChatAdapter(chats, currentUserId) { chat ->
             openChat(chat)
         }
 
@@ -121,7 +126,7 @@ class chatlist : AppCompatActivity() {
         pollingRunnable = object : Runnable {
             override fun run() {
                 fetchChats()
-                handler.postDelayed(this, 5000)
+                handler.postDelayed(this, 5000) // Poll every 5 seconds
             }
         }
         handler.post(pollingRunnable!!)
@@ -159,8 +164,14 @@ class chatlist : AppCompatActivity() {
                                     username = chatJson.getString("username"),
                                     profileImage = chatJson.optString("profile_pic", ""),
                                     lastMessage = chatJson.optString("last_message", "Start a conversation"),
-                                    timestamp = chatJson.getLong("timestamp")
+                                    timestamp = chatJson.getLong("timestamp"),
+                                    lastMessageSenderId = chatJson.optString("last_message_sender_id", ""),
+                                    deliveryStatus = chatJson.optString("delivery_status", "sent"),
+                                    isOnline = chatJson.optBoolean("is_online", false),
+                                    lastSeen = chatJson.optLong("last_seen", 0)
                                 )
+
+                                android.util.Log.d("ChatList", "Chat ${chat.username}: isOnline=${chat.isOnline}, lastSeen=${chat.lastSeen}")
 
                                 chatAdapter.addChat(chat)
                                 dbHelper.cacheChat(chat)
@@ -168,6 +179,7 @@ class chatlist : AppCompatActivity() {
                         }
                     } catch (e: Exception) {
                         android.util.Log.e("ChatList", "Error parsing chats: ${e.message}")
+                        e.printStackTrace()
                     }
                 }
             }
@@ -187,6 +199,9 @@ class chatlist : AppCompatActivity() {
         super.onResume()
         android.util.Log.d("ChatList", "onResume called")
 
+        // Resume online status tracking
+        onlineStatusManager.startTracking(currentUserId)
+
         // Refresh chats when returning to this screen
         refreshChats()
 
@@ -196,8 +211,17 @@ class chatlist : AppCompatActivity() {
         }, 1000)
     }
 
+    override fun onPause() {
+        super.onPause()
+        // Don't stop tracking - keep heartbeat running in background
+        // This way users stay "online" even when app is in background
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         pollingRunnable?.let { handler.removeCallbacks(it) }
+
+        // Stop online status tracking when activity is destroyed
+        onlineStatusManager.stopTracking()
     }
 }

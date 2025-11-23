@@ -64,7 +64,7 @@ class commentspage : AppCompatActivity() {
     }
 
     private fun loadComments() {
-        val url = "http://192.168.18.35/socially_app/get_comments.php?post_id=$postId"
+        val url = "http://192.168.100.76/socially_app/get_comments.php?post_id=$postId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -127,7 +127,7 @@ class commentspage : AppCompatActivity() {
             return
         }
 
-        val url = "http://192.168.18.35/socially_app/add_comment.php"
+        val url = "http://192.168.100.76/socially_app/add_comment.php"
 
         val request = object : StringRequest(
             Request.Method.POST, url,

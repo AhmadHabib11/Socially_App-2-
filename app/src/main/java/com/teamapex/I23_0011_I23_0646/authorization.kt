@@ -83,7 +83,7 @@ class authorization : AppCompatActivity() {
     }
 
     private fun fetchLatestUserData(userId: String) {
-        val url = "http://192.168.18.35/socially_app/get_user_data.php?user_id=$userId"
+        val url = "http://192.168.100.76/socially_app/get_user_data.php?user_id=$userId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -140,7 +140,7 @@ class authorization : AppCompatActivity() {
     }
 
     private fun loadProfilePicture(path: String, imageView: ImageView) {
-        val url = "http://192.168.18.35/socially_app/get_profile_pic.php?path=$path"
+        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$path"
 
         val request = object : StringRequest(
             Request.Method.GET, url,

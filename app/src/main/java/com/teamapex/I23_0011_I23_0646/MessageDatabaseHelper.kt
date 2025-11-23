@@ -196,10 +196,10 @@ class MessageDatabaseHelper(context: Context) :
             put(COL_TIMESTAMP, chat.timestamp)
             put(COL_LAST_MESSAGE_SENDER_ID, chat.lastMessageSenderId)
             put(COL_DELIVERY_STATUS, chat.deliveryStatus)
+            // Note: We don't cache online status as it changes frequently
         }
 
-        val result = db.insertWithOnConflict(TABLE_CHATS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
-        android.util.Log.d("MessageDB", "Cached chat ${chat.username}: result = $result")
+        db.insertWithOnConflict(TABLE_CHATS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
         db.close()
     }
 

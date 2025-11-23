@@ -25,7 +25,7 @@ class ChatAdapter(
 ) : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
 
     companion object {
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://192.168.100.76/socially_app/"
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
@@ -45,11 +45,11 @@ class ChatAdapter(
         if (existingIndex != -1) {
             chats[existingIndex] = chat
             notifyItemChanged(existingIndex)
-            Log.d("ChatAdapter", "Updated chat: ${chat.username}")
+            Log.d("ChatAdapter", "Updated chat: ${chat.username} (Online: ${chat.isOnline})")
         } else {
             chats.add(0, chat)
             notifyItemInserted(0)
-            Log.d("ChatAdapter", "Added new chat: ${chat.username}")
+            Log.d("ChatAdapter", "Added new chat: ${chat.username} (Online: ${chat.isOnline})")
         }
     }
 
@@ -63,6 +63,8 @@ class ChatAdapter(
         private val username: TextView = itemView.findViewById(R.id.tvUsername)
         private val lastMessage: TextView = itemView.findViewById(R.id.tvLastMessage)
         private val timestamp: TextView = itemView.findViewById(R.id.tvTimestamp)
+        private val statusIndicator: View = itemView.findViewById(R.id.statusIndicator)
+        private val statusText: TextView = itemView.findViewById(R.id.tvStatusText)
 
         init {
             // Make profile image circular using clipToOutline
@@ -80,10 +82,43 @@ class ChatAdapter(
             // Load profile picture
             loadProfilePicture(chat.profileImage)
 
+            // Always show status indicator - just change color based on online/offline
+            statusIndicator.visibility = View.VISIBLE
+
+            if (chat.isOnline) {
+                // User is online - show green indicator
+                statusIndicator.setBackgroundResource(R.drawable.status_indicator_online)
+
+                statusText.visibility = View.VISIBLE
+                statusText.text = "Online"
+                statusText.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+
+                Log.d("ChatAdapter", "${chat.username} is ONLINE")
+            } else {
+                // User is offline - show grey indicator
+                statusIndicator.setBackgroundResource(R.drawable.status_indicator_offline)
+
+                // Show last seen if available
+                if (chat.lastSeen > 0) {
+                    statusText.visibility = View.VISIBLE
+                    statusText.text = formatLastSeen(chat.lastSeen)
+                    statusText.setTextColor(android.graphics.Color.parseColor("#999999"))
+
+                    Log.d("ChatAdapter", "${chat.username} is OFFLINE - last seen: ${chat.lastSeen}")
+                } else {
+                    statusText.visibility = View.VISIBLE
+                    statusText.text = "Offline"
+                    statusText.setTextColor(android.graphics.Color.parseColor("#999999"))
+
+                    Log.d("ChatAdapter", "${chat.username} is OFFLINE - no last seen data")
+                }
+            }
+
             // Format the last message with status indicator
             val messageText = when {
                 chat.lastMessage.isEmpty() -> ""
                 chat.lastMessageSenderId == currentUserId -> {
+                    // Message sent by current user - show delivery status
                     val statusPrefix = when (chat.deliveryStatus) {
                         "seen" -> "Seen"
                         "delivered" -> "Delivered"
@@ -100,6 +135,7 @@ class ChatAdapter(
                     "$statusPrefix · $preview"
                 }
                 else -> {
+                    // Message received from other user
                     when {
                         chat.lastMessage.startsWith("Image") || chat.lastMessage == "image" -> "📷 Photo"
                         chat.lastMessage.startsWith("Video") || chat.lastMessage == "video" -> "🎥 Video"
@@ -118,6 +154,22 @@ class ChatAdapter(
 
             itemView.setOnClickListener {
                 onClick(chat)
+            }
+        }
+
+        private fun formatLastSeen(lastSeenTimestamp: Long): String {
+            val currentTime = System.currentTimeMillis() / 1000
+            val diff = currentTime - lastSeenTimestamp
+
+            return when {
+                diff < 60 -> "Active just now"
+                diff < 3600 -> "Active ${diff / 60}m ago"
+                diff < 86400 -> "Active ${diff / 3600}h ago"
+                diff < 604800 -> "Active ${diff / 86400}d ago"
+                else -> {
+                    val sdf = SimpleDateFormat("MMM d", Locale.getDefault())
+                    "Active ${sdf.format(Date(lastSeenTimestamp * 1000))}"
+                }
             }
         }
 

@@ -83,7 +83,7 @@ class caption : AppCompatActivity() {
         // Convert bitmap to base64
         val imageBase64 = bitmapToBase64(selectedBitmap)
 
-        val url = "http://192.168.18.35/socially_app/upload_post.php"
+        val url = "http://192.168.100.76/socially_app/upload_post.php"
 
         val pd = ProgressDialog(this)
         pd.setMessage("Uploading post...")
