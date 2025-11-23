@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+
 }
 
 android {
@@ -55,7 +56,9 @@ dependencies {
 // Material Design Components
     implementation("com.google.android.material:material:1.9.0")
 
+    implementation("io.agora.rtc:full-sdk:4.2.6")
 
+    implementation("com.github.permissions-dispatcher:permissionsdispatcher:4.9.2")
 
 
 

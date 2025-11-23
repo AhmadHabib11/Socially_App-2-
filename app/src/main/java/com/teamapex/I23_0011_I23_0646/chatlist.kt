@@ -28,7 +28,7 @@ class chatlist : AppCompatActivity() {
     private var currentUserId = ""
 
     companion object {
-        private const val BASE_URL = "http://192.168.100.76/socially_app/"
+        private const val BASE_URL = "http://192.168.18.35/socially_app/"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,12 +53,26 @@ class chatlist : AppCompatActivity() {
         // Start tracking this user's online status
         onlineStatusManager.startTracking(currentUserId)
 
+        // START CALL RECEIVER SERVICE
+        startCallReceiverService()
+
         setupViews()
         setupRecyclerView()
         refreshChats()
         startPollingChats()
     }
 
+    private fun startCallReceiverService() {
+        try {
+            val serviceIntent = Intent(this, CallReceiverService::class.java)
+            startService(serviceIntent) // Regular service, not foreground
+            android.util.Log.d("ChatList", "Call receiver service started")
+        } catch (e: Exception) {
+            android.util.Log.e("ChatList", "Failed to start call service: ${e.message}")
+        }
+    }
+
+    // ... rest of your existing chatlist code remains the same
     private fun setupViews() {
         val backarrow = findViewById<ImageView>(R.id.backArrow)
         val bottomcam = findViewById<ImageView>(R.id.cambottom)
@@ -214,7 +228,6 @@ class chatlist : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         // Don't stop tracking - keep heartbeat running in background
-        // This way users stay "online" even when app is in background
     }
 
     override fun onDestroy() {

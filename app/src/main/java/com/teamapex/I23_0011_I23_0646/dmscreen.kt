@@ -23,6 +23,11 @@ import okhttp3.*
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.InputStream
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 class dmscreen : AppCompatActivity() {
 
@@ -32,6 +37,7 @@ class dmscreen : AppCompatActivity() {
     private lateinit var btnSend: ImageView
     private lateinit var galleryBtn: ImageView
     private lateinit var cameraBtn: ImageView
+    private lateinit var videoBtn: ImageView
     private lateinit var vanishModeBtn: ImageView
     private lateinit var usernameTextView: TextView
 
@@ -53,7 +59,15 @@ class dmscreen : AppCompatActivity() {
     companion object {
         private const val PICK_IMAGE = 1
         private const val CAPTURE_IMAGE = 2
-        private const val BASE_URL = "http://192.168.100.76/socially_app/"
+        private const val PICK_VIDEO = 3
+        private const val CAPTURE_VIDEO = 4
+        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val MAX_VIDEO_SIZE = 10 * 1024 * 1024 // 10MB limit
+        private const val PERMISSION_REQ_ID = 22
+        private val REQUESTED_PERMISSIONS = arrayOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.CAMERA
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,15 +107,14 @@ class dmscreen : AppCompatActivity() {
         btnSend = findViewById(R.id.btnSend)
         galleryBtn = findViewById(R.id.gallery)
         cameraBtn = findViewById(R.id.camerabtn)
+        videoBtn = findViewById(R.id.videobtn) // Add this to your layout
         vanishModeBtn = findViewById(R.id.vanishModeBtn)
         usernameTextView = findViewById(R.id.username)
 
         usernameTextView.text = otherUsername
 
-        // Load profile picture (ID is 'dp' in layout)
         val profileImageView = findViewById<ImageView>(R.id.dp)
 
-        // Make it circular
         profileImageView.outlineProvider = object : android.view.ViewOutlineProvider() {
             override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
                 outline.setOval(0, 0, view.width, view.height)
@@ -119,7 +132,104 @@ class dmscreen : AppCompatActivity() {
         findViewById<ImageView>(R.id.backArrow).setOnClickListener {
             finish()
         }
+
+        val voiceCallBtn = findViewById<ImageView>(R.id.voicecall)
+        val videoCallBtn = findViewById<ImageView>(R.id.vidcall)
+
+        voiceCallBtn.setOnClickListener {
+            if (checkCallPermissions()) {
+                initiateCall("audio")
+            } else {
+                requestCallPermissions()
+            }
+        }
+
+        videoCallBtn.setOnClickListener {
+            if (checkCallPermissions()) {
+                initiateCall("video")
+            } else {
+                requestCallPermissions()
+            }
+        }
+
     }
+
+    private fun checkCallPermissions(): Boolean {
+        return REQUESTED_PERMISSIONS.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestCallPermissions() {
+        ActivityCompat.requestPermissions(this, REQUESTED_PERMISSIONS, PERMISSION_REQ_ID)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQ_ID) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                Toast.makeText(this, "Permissions granted", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Permissions required for calls", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun initiateCall(callType: String) {
+        val channelName = "call_${chatId}_${System.currentTimeMillis()}"
+
+        val request = FormBody.Builder()
+            .add("action", "initiate")
+            .add("caller_id", currentUserId)
+            .add("receiver_id", otherUserId)
+            .add("call_type", callType)
+            .add("channel_name", channelName)
+            .build()
+
+        val httpRequest = Request.Builder()
+            .url("${BASE_URL}call_invitation.php")
+            .post(request)
+            .build()
+
+        client.newCall(httpRequest).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    Toast.makeText(this@dmscreen, "Failed to initiate call", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseData = response.body?.string()
+                runOnUiThread {
+                    try {
+                        val json = JSONObject(responseData ?: "{}")
+                        if (json.getInt("statuscode") == 200) {
+                            val callId = json.getInt("call_id")
+
+                            val intent = Intent(this@dmscreen, callpage::class.java)
+                            intent.putExtra("call_id", callId)
+                            intent.putExtra("channel_name", channelName)
+                            intent.putExtra("call_type", callType)
+                            intent.putExtra("is_caller", true)
+                            intent.putExtra("other_user_id", otherUserId)
+                            intent.putExtra("other_username", otherUsername)
+                            intent.putExtra("other_profile_image", otherUserProfileImage)
+                            startActivity(intent)
+                        } else {
+                            Toast.makeText(this@dmscreen, "Failed to start call", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(this@dmscreen, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        })
+    }
+
 
     private fun loadProfilePicture(profilePicPath: String, imageView: ImageView) {
         if (profilePicPath.isEmpty()) {
@@ -178,8 +288,8 @@ class dmscreen : AppCompatActivity() {
 
         cachedMessages.forEach { msg ->
             android.util.Log.e("CACHE_CHECK", "Message ID=${msg.id}, Type=${msg.messageType}, VanishMode=${msg.vanishMode}")
-            if (msg.messageType == "image") {
-                android.util.Log.e("CACHE_CHECK", "IMAGE - mediaPath is empty: ${msg.mediaPath.isEmpty()}, starts with data:image = ${msg.mediaPath.startsWith("data:image")}")
+            if (msg.messageType == "image" || msg.messageType == "video") {
+                android.util.Log.e("CACHE_CHECK", "${msg.messageType.uppercase()} - mediaPath is empty: ${msg.mediaPath.isEmpty()}, starts with data: = ${msg.mediaPath.startsWith("data:")}")
             }
             messageAdapter.addMessage(msg)
         }
@@ -220,11 +330,39 @@ class dmscreen : AppCompatActivity() {
             startActivityForResult(intent, CAPTURE_IMAGE)
         }
 
+        // Video button listener
+        videoBtn.setOnClickListener {
+            showVideoOptions()
+        }
+
         vanishModeBtn.setOnClickListener {
             toggleVanishMode()
         }
 
         updateVanishModeButton()
+    }
+
+    private fun showVideoOptions() {
+        val options = arrayOf("Record Video", "Choose from Gallery", "Cancel")
+
+        AlertDialog.Builder(this)
+            .setTitle("Send Video")
+            .setItems(options) { dialog, which ->
+                when (which) {
+                    0 -> {
+                        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+                        intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 60) // 60 seconds max
+                        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0) // 0 = low quality for smaller size
+                        startActivityForResult(intent, CAPTURE_VIDEO)
+                    }
+                    1 -> {
+                        val intent = Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+                        startActivityForResult(intent, PICK_VIDEO)
+                    }
+                    2 -> dialog.dismiss()
+                }
+            }
+            .show()
     }
 
     private fun toggleVanishMode() {
@@ -268,8 +406,122 @@ class dmscreen : AppCompatActivity() {
                     val imageBitmap = data.extras?.get("data") as? Bitmap
                     imageBitmap?.let { sendCapturedImage(it) }
                 }
+                PICK_VIDEO -> {
+                    val videoUri = data.data
+                    videoUri?.let { sendVideoMessage(it) }
+                }
+                CAPTURE_VIDEO -> {
+                    val videoUri = data.data
+                    videoUri?.let { sendVideoMessage(it) }
+                }
             }
         }
+    }
+
+    private fun sendVideoMessage(videoUri: Uri) {
+        try {
+            // Check video size
+            val inputStream = contentResolver.openInputStream(videoUri)
+            val videoSize = inputStream?.available() ?: 0
+            inputStream?.close()
+
+            if (videoSize > MAX_VIDEO_SIZE) {
+                Toast.makeText(this, "Video is too large. Maximum size is 10MB", Toast.LENGTH_LONG).show()
+                return
+            }
+
+            // Show progress
+            Toast.makeText(this, "Uploading video...", Toast.LENGTH_SHORT).show()
+
+            // Read video data
+            val videoData = readVideoData(videoUri)
+            val base64Video = Base64.encodeToString(videoData, Base64.DEFAULT)
+
+            val request = FormBody.Builder()
+                .add("chat_id", chatId)
+                .add("sender_id", currentUserId)
+                .add("message_type", "video")
+                .add("media_data", base64Video)
+                .add("vanish_mode", if (vanishMode) "1" else "0")
+                .build()
+
+            val httpRequest = Request.Builder()
+                .url("${BASE_URL}send_message.php")
+                .post(request)
+                .build()
+
+            client.newCall(httpRequest).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    runOnUiThread {
+                        Toast.makeText(this@dmscreen, "Failed to send video", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    val responseData = response.body?.string()
+                    runOnUiThread {
+                        try {
+                            val json = JSONObject(responseData ?: "{}")
+                            if (json.getInt("statuscode") == 200) {
+                                val messageId = json.getInt("message_id")
+                                val timestamp = json.getLong("timestamp")
+                                val deliveryStatus = json.optString("delivery_status", "sent")
+
+                                val message = Message(
+                                    id = messageId,
+                                    chatId = chatId,
+                                    senderId = currentUserId,
+                                    messageType = "video",
+                                    mediaPath = "data:video/mp4;base64,$base64Video",
+                                    timestamp = timestamp,
+                                    vanishMode = vanishMode,
+                                    deliveryStatus = deliveryStatus
+                                )
+
+                                messageAdapter.addMessage(message)
+                                dbHelper.cacheMessage(message)
+
+                                val updatedChat = Chat(
+                                    chatId = chatId,
+                                    userId = otherUserId,
+                                    username = otherUsername,
+                                    profileImage = otherUserProfileImage,
+                                    lastMessage = "Video",
+                                    timestamp = timestamp,
+                                    lastMessageSenderId = currentUserId,
+                                    deliveryStatus = deliveryStatus
+                                )
+                                dbHelper.cacheChat(updatedChat)
+
+                                recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
+                                Toast.makeText(this@dmscreen, "Video sent!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this@dmscreen, "Failed to send video", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(this@dmscreen, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            })
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error loading video: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun readVideoData(videoUri: Uri): ByteArray {
+        val inputStream: InputStream? = contentResolver.openInputStream(videoUri)
+        val byteBuffer = ByteArrayOutputStream()
+        val buffer = ByteArray(1024)
+        var len: Int
+
+        inputStream?.use { input ->
+            while (input.read(buffer).also { len = it } != -1) {
+                byteBuffer.write(buffer, 0, len)
+            }
+        }
+
+        return byteBuffer.toByteArray()
     }
 
     private fun sendCapturedImage(bitmap: Bitmap) {
@@ -500,6 +752,8 @@ class dmscreen : AppCompatActivity() {
         handler.post(pollingRunnable!!)
     }
 
+    // Replace the entire fetchNewMessages() method in dmscreen.kt with this:
+
     private fun fetchNewMessages() {
         val url = "${BASE_URL}get_messages.php?chat_id=$chatId&user_id=$currentUserId&last_timestamp=$lastTimestamp"
 
@@ -510,6 +764,7 @@ class dmscreen : AppCompatActivity() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
+                // Silent failure - will retry on next poll
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -523,11 +778,21 @@ class dmscreen : AppCompatActivity() {
                             for (i in 0 until messagesArray.length()) {
                                 val msgJson = messagesArray.getJSONObject(i)
 
+                                // Parse shared_post_id if present
+                                val sharedPostId = if (msgJson.has("shared_post_id") && !msgJson.isNull("shared_post_id")) {
+                                    msgJson.getInt("shared_post_id")
+                                } else {
+                                    null
+                                }
+
+                                // Get message type - ensure it's exactly what was sent
+                                val messageType = msgJson.getString("message_type")
+
                                 val message = Message(
                                     id = msgJson.getInt("id"),
                                     chatId = chatId,
                                     senderId = msgJson.getString("sender_id"),
-                                    messageType = msgJson.getString("message_type"),
+                                    messageType = messageType, // Use the exact type from server
                                     content = msgJson.optString("content", ""),
                                     mediaPath = msgJson.optString("media_path", ""),
                                     timestamp = msgJson.getLong("timestamp"),
@@ -535,9 +800,11 @@ class dmscreen : AppCompatActivity() {
                                     isDeleted = msgJson.getInt("is_deleted") == 1,
                                     isEdited = msgJson.getInt("is_edited") == 1,
                                     seenBy = msgJson.optString("seen_by", ""),
-                                    deliveryStatus = msgJson.optString("delivery_status", "sent")
+                                    deliveryStatus = msgJson.optString("delivery_status", "sent"),
+                                    sharedPostId = sharedPostId
                                 )
 
+                                // Only add if message type is valid
                                 messageAdapter.addMessage(message)
                                 dbHelper.cacheMessage(message)
 
@@ -545,17 +812,20 @@ class dmscreen : AppCompatActivity() {
                                     lastTimestamp = message.timestamp
                                 }
 
+                                // Mark message as seen if not from current user
                                 if (message.senderId != currentUserId) {
                                     markMessageAsSeen(message.id)
                                 }
                             }
 
+                            // Scroll to bottom if new messages arrived
                             if (messagesArray.length() > 0) {
                                 recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
                             }
                         }
                     } catch (e: Exception) {
                         android.util.Log.e("dmscreen", "Error fetching messages: ${e.message}")
+                        e.printStackTrace()
                     }
                 }
             }
@@ -580,10 +850,8 @@ class dmscreen : AppCompatActivity() {
     }
 
     private fun showMessageOptions(message: Message) {
-        // Only allow editing/deleting own messages
         if (message.senderId != currentUserId) return
 
-        // Don't allow editing/deleting already deleted messages
         if (message.isDeleted) {
             Toast.makeText(this, "This message has been deleted", Toast.LENGTH_SHORT).show()
             return
@@ -591,10 +859,9 @@ class dmscreen : AppCompatActivity() {
 
         val currentTime = System.currentTimeMillis() / 1000
         val timeDiff = currentTime - message.timestamp
-        val canEditDelete = timeDiff <= 300 // 5 minutes
+        val canEditDelete = timeDiff <= 300
 
         if (!canEditDelete) {
-            // Show time limit message
             AlertDialog.Builder(this)
                 .setTitle("Time Limit Exceeded")
                 .setMessage("Messages can only be edited or deleted within 5 minutes of sending.")
@@ -603,7 +870,6 @@ class dmscreen : AppCompatActivity() {
             return
         }
 
-        // Build options based on message type
         val optionsList = mutableListOf<String>()
 
         if (message.messageType == "text") {
@@ -640,7 +906,7 @@ class dmscreen : AppCompatActivity() {
     private fun showEditDialog(message: Message) {
         val editText = EditText(this)
         editText.setText(message.content)
-        editText.setSelection(message.content.length) // Put cursor at end
+        editText.setSelection(message.content.length)
 
         AlertDialog.Builder(this)
             .setTitle("Edit Message")
@@ -658,7 +924,6 @@ class dmscreen : AppCompatActivity() {
             .setNegativeButton("Cancel", null)
             .show()
 
-        // Show keyboard automatically
         editText.requestFocus()
         val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         editText.postDelayed({

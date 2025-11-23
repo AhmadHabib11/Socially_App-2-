@@ -5,141 +5,122 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class MessageDatabaseHelper(context: Context) :
-    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+class MessageDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
         private const val DATABASE_NAME = "messages.db"
-        private const val DATABASE_VERSION = 2 // Increment version for new columns
+        private const val DATABASE_VERSION = 4
 
-        // Messages table
-        private const val TABLE_MESSAGES = "messages"
-        private const val COL_ID = "id"
-        private const val COL_CHAT_ID = "chat_id"
-        private const val COL_SENDER_ID = "sender_id"
-        private const val COL_MESSAGE_TYPE = "message_type"
-        private const val COL_CONTENT = "content"
-        private const val COL_MEDIA_PATH = "media_path"
-        private const val COL_TIMESTAMP = "timestamp"
-        private const val COL_VANISH_MODE = "vanish_mode"
-        private const val COL_IS_DELETED = "is_deleted"
-        private const val COL_IS_EDITED = "is_edited"
-        private const val COL_SEEN_BY = "seen_by"
-        private const val COL_DELIVERY_STATUS = "delivery_status"
+        // Messages table - FIXED: Changed message_id to id to match your database
+        const val TABLE_MESSAGES = "messages"
+        const val COLUMN_MESSAGE_ID = "id"  // ← CHANGED FROM "message_id" to "id"
+        const val COLUMN_CHAT_ID = "chat_id"
+        const val COLUMN_SENDER_ID = "sender_id"
+        const val COLUMN_MESSAGE_TYPE = "message_type"
+        const val COLUMN_CONTENT = "content"
+        const val COLUMN_MEDIA_PATH = "media_path"
+        const val COLUMN_TIMESTAMP = "timestamp"
+        const val COLUMN_VANISH_MODE = "vanish_mode"
+        const val COLUMN_IS_DELETED = "is_deleted"
+        const val COLUMN_IS_EDITED = "is_edited"
+        const val COLUMN_SEEN_BY = "seen_by"
+        const val COLUMN_DELIVERY_STATUS = "delivery_status"
+        const val COLUMN_SHARED_POST_ID = "shared_post_id"
 
         // Chats table
-        private const val TABLE_CHATS = "chats"
-        private const val COL_USER_ID = "user_id"
-        private const val COL_USERNAME = "username"
-        private const val COL_PROFILE_PIC = "profile_pic"
-        private const val COL_LAST_MESSAGE = "last_message"
-        private const val COL_LAST_MESSAGE_SENDER_ID = "last_message_sender_id"
+        const val TABLE_CHATS = "chats"
+        const val COLUMN_CHAT_ID_PK = "chat_id"
+        const val COLUMN_USER_ID = "user_id"
+        const val COLUMN_USERNAME = "username"
+        const val COLUMN_PROFILE_IMAGE = "profile_image"
+        const val COLUMN_LAST_MESSAGE = "last_message"
+        const val COLUMN_LAST_TIMESTAMP = "last_timestamp"
+        const val COLUMN_LAST_MESSAGE_SENDER_ID = "last_message_sender_id"
+        const val COLUMN_CHAT_DELIVERY_STATUS = "delivery_status"
+
+        private const val CREATE_MESSAGES_TABLE = """
+            CREATE TABLE IF NOT EXISTS $TABLE_MESSAGES (
+                $COLUMN_MESSAGE_ID INTEGER PRIMARY KEY,
+                $COLUMN_CHAT_ID TEXT,
+                $COLUMN_SENDER_ID TEXT,
+                $COLUMN_MESSAGE_TYPE TEXT,
+                $COLUMN_CONTENT TEXT,
+                $COLUMN_MEDIA_PATH TEXT,
+                $COLUMN_TIMESTAMP INTEGER,
+                $COLUMN_VANISH_MODE INTEGER,
+                $COLUMN_IS_DELETED INTEGER,
+                $COLUMN_IS_EDITED INTEGER,
+                $COLUMN_SEEN_BY TEXT,
+                $COLUMN_DELIVERY_STATUS TEXT,
+                $COLUMN_SHARED_POST_ID INTEGER
+            )
+        """
+
+        private const val CREATE_CHATS_TABLE = """
+            CREATE TABLE IF NOT EXISTS $TABLE_CHATS (
+                $COLUMN_CHAT_ID_PK TEXT PRIMARY KEY,
+                $COLUMN_USER_ID TEXT,
+                $COLUMN_USERNAME TEXT,
+                $COLUMN_PROFILE_IMAGE TEXT,
+                $COLUMN_LAST_MESSAGE TEXT,
+                $COLUMN_LAST_TIMESTAMP INTEGER,
+                $COLUMN_LAST_MESSAGE_SENDER_ID TEXT,
+                $COLUMN_CHAT_DELIVERY_STATUS TEXT
+            )
+        """
     }
 
-    override fun onCreate(db: SQLiteDatabase?) {
-        val createMessagesTable = """
-            CREATE TABLE $TABLE_MESSAGES (
-                $COL_ID INTEGER PRIMARY KEY,
-                $COL_CHAT_ID TEXT NOT NULL,
-                $COL_SENDER_ID TEXT NOT NULL,
-                $COL_MESSAGE_TYPE TEXT DEFAULT 'text',
-                $COL_CONTENT TEXT,
-                $COL_MEDIA_PATH TEXT,
-                $COL_TIMESTAMP INTEGER NOT NULL,
-                $COL_VANISH_MODE INTEGER DEFAULT 0,
-                $COL_IS_DELETED INTEGER DEFAULT 0,
-                $COL_IS_EDITED INTEGER DEFAULT 0,
-                $COL_SEEN_BY TEXT,
-                $COL_DELIVERY_STATUS TEXT DEFAULT 'sent'
-            )
-        """.trimIndent()
-
-        val createChatsTable = """
-            CREATE TABLE $TABLE_CHATS (
-                $COL_CHAT_ID TEXT PRIMARY KEY,
-                $COL_USER_ID TEXT NOT NULL,
-                $COL_USERNAME TEXT,
-                $COL_PROFILE_PIC TEXT,
-                $COL_LAST_MESSAGE TEXT,
-                $COL_TIMESTAMP INTEGER,
-                $COL_LAST_MESSAGE_SENDER_ID TEXT,
-                $COL_DELIVERY_STATUS TEXT DEFAULT 'sent'
-            )
-        """.trimIndent()
-
-        db?.execSQL(createMessagesTable)
-        db?.execSQL(createChatsTable)
+    override fun onCreate(db: SQLiteDatabase) {
+        db.execSQL(CREATE_MESSAGES_TABLE)
+        db.execSQL(CREATE_CHATS_TABLE)
     }
 
-    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-        if (oldVersion < 2) {
-            // Add new columns to existing tables
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        // Handle version 1 -> 2+ : add shared_post_id to messages
+        if (oldVersion < 3) {
             try {
-                db?.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_DELIVERY_STATUS TEXT DEFAULT 'sent'")
+                db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COLUMN_SHARED_POST_ID INTEGER")
             } catch (e: Exception) {
-                android.util.Log.e("MessageDB", "Column already exists or error: ${e.message}")
+                // Column might already exist, ignore
             }
+        }
 
+        // Handle version 3 -> 4: Recreate chats table with all columns
+        if (oldVersion < 4) {
             try {
-                db?.execSQL("ALTER TABLE $TABLE_CHATS ADD COLUMN $COL_LAST_MESSAGE_SENDER_ID TEXT")
-                db?.execSQL("ALTER TABLE $TABLE_CHATS ADD COLUMN $COL_DELIVERY_STATUS TEXT DEFAULT 'sent'")
+                // Drop old chats table
+                db.execSQL("DROP TABLE IF EXISTS $TABLE_CHATS")
+                // Recreate with correct schema
+                db.execSQL(CREATE_CHATS_TABLE)
             } catch (e: Exception) {
-                android.util.Log.e("MessageDB", "Column already exists or error: ${e.message}")
+                android.util.Log.e("DBUpgrade", "Error upgrading chats table: ${e.message}")
             }
         }
     }
 
-    // Cache message locally
-    // In MessageDatabaseHelper.kt, replace cacheMessage() with this:
-
+    // Cache a message
     fun cacheMessage(message: Message) {
         val db = writableDatabase
-
-        // Check if message already exists with base64 image
-        if (message.messageType == "image") {
-            val cursor = db.query(
-                TABLE_MESSAGES,
-                arrayOf(COL_MEDIA_PATH),
-                "$COL_ID = ?",
-                arrayOf(message.id.toString()),
-                null, null, null
-            )
-
-            if (cursor.moveToFirst()) {
-                val existingPath = cursor.getString(0) ?: ""
-                cursor.close()
-
-                // If existing has base64 but new doesn't, DON'T overwrite!
-                if (existingPath.startsWith("data:image") && !message.mediaPath.startsWith("data:image")) {
-                    android.util.Log.d("MessageDB", "Skipping cache - preserving base64 for message ${message.id}")
-                    db.close()
-                    return
-                }
-            } else {
-                cursor.close()
-            }
-        }
-
         val values = ContentValues().apply {
-            put(COL_ID, message.id)
-            put(COL_CHAT_ID, message.chatId)
-            put(COL_SENDER_ID, message.senderId)
-            put(COL_MESSAGE_TYPE, message.messageType)
-            put(COL_CONTENT, message.content)
-            put(COL_MEDIA_PATH, message.mediaPath)
-            put(COL_TIMESTAMP, message.timestamp)
-            put(COL_VANISH_MODE, if (message.vanishMode) 1 else 0)
-            put(COL_IS_DELETED, if (message.isDeleted) 1 else 0)
-            put(COL_IS_EDITED, if (message.isEdited) 1 else 0)
-            put(COL_SEEN_BY, message.seenBy)
-            put(COL_DELIVERY_STATUS, message.deliveryStatus)
+            put(COLUMN_MESSAGE_ID, message.id)
+            put(COLUMN_CHAT_ID, message.chatId)
+            put(COLUMN_SENDER_ID, message.senderId)
+            put(COLUMN_MESSAGE_TYPE, message.messageType)
+            put(COLUMN_CONTENT, message.content)
+            put(COLUMN_MEDIA_PATH, message.mediaPath)
+            put(COLUMN_TIMESTAMP, message.timestamp)
+            put(COLUMN_VANISH_MODE, if (message.vanishMode) 1 else 0)
+            put(COLUMN_IS_DELETED, if (message.isDeleted) 1 else 0)
+            put(COLUMN_IS_EDITED, if (message.isEdited) 1 else 0)
+            put(COLUMN_SEEN_BY, message.seenBy)
+            put(COLUMN_DELIVERY_STATUS, message.deliveryStatus)
+            put(COLUMN_SHARED_POST_ID, message.sharedPostId)
         }
 
         db.insertWithOnConflict(TABLE_MESSAGES, null, values, SQLiteDatabase.CONFLICT_REPLACE)
-        db.close()
     }
 
-    // Get cached messages for a chat
+    // Get cached messages for a specific chat
     fun getCachedMessages(chatId: String): List<Message> {
         val messages = mutableListOf<Message>()
         val db = readableDatabase
@@ -147,139 +128,136 @@ class MessageDatabaseHelper(context: Context) :
         val cursor = db.query(
             TABLE_MESSAGES,
             null,
-            "$COL_CHAT_ID = ? AND $COL_IS_DELETED = 0",
+            "$COLUMN_CHAT_ID = ?",
             arrayOf(chatId),
-            null, null,
-            "$COL_TIMESTAMP ASC"
+            null,
+            null,
+            "$COLUMN_TIMESTAMP ASC"
         )
 
-        while (cursor.moveToNext()) {
-            val deliveryStatusIndex = cursor.getColumnIndex(COL_DELIVERY_STATUS)
-            val deliveryStatus = if (deliveryStatusIndex >= 0) {
-                cursor.getString(deliveryStatusIndex) ?: "sent"
-            } else {
-                "sent"
-            }
-
-            messages.add(
-                Message(
-                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_ID)),
-                    chatId = cursor.getString(cursor.getColumnIndexOrThrow(COL_CHAT_ID)),
-                    senderId = cursor.getString(cursor.getColumnIndexOrThrow(COL_SENDER_ID)),
-                    messageType = cursor.getString(cursor.getColumnIndexOrThrow(COL_MESSAGE_TYPE)),
-                    content = cursor.getString(cursor.getColumnIndexOrThrow(COL_CONTENT)) ?: "",
-                    mediaPath = cursor.getString(cursor.getColumnIndexOrThrow(COL_MEDIA_PATH)) ?: "",
-                    timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COL_TIMESTAMP)),
-                    vanishMode = cursor.getInt(cursor.getColumnIndexOrThrow(COL_VANISH_MODE)) == 1,
-                    isDeleted = cursor.getInt(cursor.getColumnIndexOrThrow(COL_IS_DELETED)) == 1,
-                    isEdited = cursor.getInt(cursor.getColumnIndexOrThrow(COL_IS_EDITED)) == 1,
-                    seenBy = cursor.getString(cursor.getColumnIndexOrThrow(COL_SEEN_BY)) ?: "",
-                    deliveryStatus = deliveryStatus
+        cursor.use {
+            while (it.moveToNext()) {
+                val message = Message(
+                    id = it.getInt(it.getColumnIndexOrThrow(COLUMN_MESSAGE_ID)),
+                    chatId = it.getString(it.getColumnIndexOrThrow(COLUMN_CHAT_ID)),
+                    senderId = it.getString(it.getColumnIndexOrThrow(COLUMN_SENDER_ID)),
+                    messageType = it.getString(it.getColumnIndexOrThrow(COLUMN_MESSAGE_TYPE)),
+                    content = it.getString(it.getColumnIndexOrThrow(COLUMN_CONTENT)),
+                    mediaPath = it.getString(it.getColumnIndexOrThrow(COLUMN_MEDIA_PATH)),
+                    timestamp = it.getLong(it.getColumnIndexOrThrow(COLUMN_TIMESTAMP)),
+                    vanishMode = it.getInt(it.getColumnIndexOrThrow(COLUMN_VANISH_MODE)) == 1,
+                    isDeleted = it.getInt(it.getColumnIndexOrThrow(COLUMN_IS_DELETED)) == 1,
+                    isEdited = it.getInt(it.getColumnIndexOrThrow(COLUMN_IS_EDITED)) == 1,
+                    seenBy = it.getString(it.getColumnIndexOrThrow(COLUMN_SEEN_BY)),
+                    deliveryStatus = it.getString(it.getColumnIndexOrThrow(COLUMN_DELIVERY_STATUS)),
+                    sharedPostId = if (it.isNull(it.getColumnIndexOrThrow(COLUMN_SHARED_POST_ID)))
+                        null
+                    else
+                        it.getInt(it.getColumnIndexOrThrow(COLUMN_SHARED_POST_ID))
                 )
-            )
+                messages.add(message)
+            }
         }
 
-        cursor.close()
-        db.close()
         return messages
     }
 
-    // Cache chat locally
+    // Cache a chat
     fun cacheChat(chat: Chat) {
         val db = writableDatabase
         val values = ContentValues().apply {
-            put(COL_CHAT_ID, chat.chatId)
-            put(COL_USER_ID, chat.userId)
-            put(COL_USERNAME, chat.username)
-            put(COL_PROFILE_PIC, chat.profileImage)
-            put(COL_LAST_MESSAGE, chat.lastMessage)
-            put(COL_TIMESTAMP, chat.timestamp)
-            put(COL_LAST_MESSAGE_SENDER_ID, chat.lastMessageSenderId)
-            put(COL_DELIVERY_STATUS, chat.deliveryStatus)
-            // Note: We don't cache online status as it changes frequently
+            put(COLUMN_CHAT_ID_PK, chat.chatId)
+            put(COLUMN_USER_ID, chat.userId)
+            put(COLUMN_USERNAME, chat.username)
+            put(COLUMN_PROFILE_IMAGE, chat.profileImage)
+            put(COLUMN_LAST_MESSAGE, chat.lastMessage)
+            put(COLUMN_LAST_TIMESTAMP, chat.timestamp)
+            put(COLUMN_LAST_MESSAGE_SENDER_ID, chat.lastMessageSenderId)
+            put(COLUMN_CHAT_DELIVERY_STATUS, chat.deliveryStatus)
         }
 
         db.insertWithOnConflict(TABLE_CHATS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
-        db.close()
     }
 
-    // Get cached chats
+    // Get all cached chats
     fun getCachedChats(): List<Chat> {
         val chats = mutableListOf<Chat>()
         val db = readableDatabase
 
         val cursor = db.query(
             TABLE_CHATS,
-            null, null, null, null, null,
-            "$COL_TIMESTAMP DESC"
+            null,
+            null,
+            null,
+            null,
+            null,
+            "$COLUMN_LAST_TIMESTAMP DESC"
         )
 
-        while (cursor.moveToNext()) {
-            val lastMessageSenderIdIndex = cursor.getColumnIndex(COL_LAST_MESSAGE_SENDER_ID)
-            val deliveryStatusIndex = cursor.getColumnIndex(COL_DELIVERY_STATUS)
-
-            val lastMessageSenderId = if (lastMessageSenderIdIndex >= 0) {
-                cursor.getString(lastMessageSenderIdIndex) ?: ""
-            } else {
-                ""
-            }
-
-            val deliveryStatus = if (deliveryStatusIndex >= 0) {
-                cursor.getString(deliveryStatusIndex) ?: "sent"
-            } else {
-                "sent"
-            }
-
-            chats.add(
-                Chat(
-                    chatId = cursor.getString(cursor.getColumnIndexOrThrow(COL_CHAT_ID)),
-                    userId = cursor.getString(cursor.getColumnIndexOrThrow(COL_USER_ID)),
-                    username = cursor.getString(cursor.getColumnIndexOrThrow(COL_USERNAME)),
-                    profileImage = cursor.getString(cursor.getColumnIndexOrThrow(COL_PROFILE_PIC)),
-                    lastMessage = cursor.getString(cursor.getColumnIndexOrThrow(COL_LAST_MESSAGE)),
-                    timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COL_TIMESTAMP)),
-                    lastMessageSenderId = lastMessageSenderId,
-                    deliveryStatus = deliveryStatus
+        cursor.use {
+            while (it.moveToNext()) {
+                val chat = Chat(
+                    chatId = it.getString(it.getColumnIndexOrThrow(COLUMN_CHAT_ID_PK)),
+                    userId = it.getString(it.getColumnIndexOrThrow(COLUMN_USER_ID)),
+                    username = it.getString(it.getColumnIndexOrThrow(COLUMN_USERNAME)),
+                    profileImage = it.getString(it.getColumnIndexOrThrow(COLUMN_PROFILE_IMAGE)),
+                    lastMessage = it.getString(it.getColumnIndexOrThrow(COLUMN_LAST_MESSAGE)),
+                    timestamp = it.getLong(it.getColumnIndexOrThrow(COLUMN_LAST_TIMESTAMP)),
+                    lastMessageSenderId = it.getString(it.getColumnIndexOrThrow(COLUMN_LAST_MESSAGE_SENDER_ID)),
+                    deliveryStatus = it.getString(it.getColumnIndexOrThrow(COLUMN_CHAT_DELIVERY_STATUS))
                 )
-            )
+                chats.add(chat)
+            }
         }
 
-        cursor.close()
-        db.close()
         return chats
     }
 
-    // Delete vanish mode messages from local cache
-    fun deleteVanishMessages(chatId: String, currentUserId: String) {
-        // DO NOTHING - disabled for now
-        android.util.Log.d("MessageDB", "deleteVanishMessages called but DISABLED - doing nothing")
-
-        // Don't delete anything!
-        // val deleteQuery = "$COL_CHAT_ID = ? AND $COL_VANISH_MODE = 1"
-        // val deleted = db.delete(TABLE_MESSAGES, deleteQuery, arrayOf(chatId))
-    }
-
-    // Clear all cached data
-    fun clearCache() {
-        val db = writableDatabase
-        db.delete(TABLE_MESSAGES, null, null)
-        db.delete(TABLE_CHATS, null, null)
-        db.close()
-    }
-
+    // Update message content (for editing)
     fun updateMessageContent(messageId: Int, newContent: String) {
         val db = writableDatabase
         val values = ContentValues().apply {
-            put("content", newContent)
-            put("is_edited", 1)
+            put(COLUMN_CONTENT, newContent)
+            put(COLUMN_IS_EDITED, 1)
         }
-        db.update("messages", values, "id = ?", arrayOf(messageId.toString()))
-        db.close()
+
+        db.update(
+            TABLE_MESSAGES,
+            values,
+            "$COLUMN_MESSAGE_ID = ?",
+            arrayOf(messageId.toString())
+        )
     }
 
+    // Delete a message (mark as deleted)
     fun deleteMessage(messageId: Int) {
         val db = writableDatabase
-        db.delete("messages", "id = ?", arrayOf(messageId.toString()))
-        db.close()
+        val values = ContentValues().apply {
+            put(COLUMN_IS_DELETED, 1)
+        }
+
+        db.update(
+            TABLE_MESSAGES,
+            values,
+            "$COLUMN_MESSAGE_ID = ?",
+            arrayOf(messageId.toString())
+        )
+    }
+
+    // Clear all messages for a specific chat
+    fun clearChatMessages(chatId: String) {
+        val db = writableDatabase
+        db.delete(
+            TABLE_MESSAGES,
+            "$COLUMN_CHAT_ID = ?",
+            arrayOf(chatId)
+        )
+    }
+
+    // Clear all cached data
+    fun clearAllCache() {
+        val db = writableDatabase
+        db.execSQL("DELETE FROM $TABLE_MESSAGES")
+        db.execSQL("DELETE FROM $TABLE_CHATS")
     }
 }

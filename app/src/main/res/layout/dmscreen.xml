@@ -48,7 +48,7 @@
             android:maxLines="1"
             android:ellipsize="end"/>
 
-        <!-- Vanish Mode Button (NEW) -->
+        <!-- Vanish Mode Button -->
         <ImageView
             android:id="@+id/vanishModeBtn"
             android:layout_width="28dp"
@@ -152,6 +152,16 @@
             android:src="@drawable/mic"
             android:layout_marginStart="8dp"
             android:layout_gravity="bottom" />
+
+        <!-- VIDEO BUTTON (NEW) -->
+        <ImageView
+            android:id="@+id/videobtn"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/ic_video"
+            android:layout_marginStart="8dp"
+            android:layout_gravity="bottom"
+            android:contentDescription="Send Video" />
 
         <ImageView
             android:id="@+id/gallery"

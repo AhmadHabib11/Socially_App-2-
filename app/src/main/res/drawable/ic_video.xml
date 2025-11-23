@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Simplified video camera icon -->
+    <path
+        android:fillColor="#9b5a5a"
+        android:pathData="M4,6h12v12H4V6z M18,9l4,-3v12l-4,-3V9z"/>
+</vector>
