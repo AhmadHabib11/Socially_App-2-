@@ -21,7 +21,7 @@ class CallReceiverService : Service() {
     private lateinit var sessionManager: SessionManager
 
     companion object {
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://192.168.100.76/socially_app/"
         private const val CALL_NOTIFICATION_CHANNEL_ID = "call_notifications"
         private const val CALL_NOTIFICATION_ID = 1001
     }

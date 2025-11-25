@@ -116,11 +116,26 @@ class MessageAdapter(
         private val postUsername: TextView = itemView.findViewById(R.id.tvPostUsername)
         private val postCaption: TextView = itemView.findViewById(R.id.tvPostCaption)
         private val timeText: TextView = itemView.findViewById(R.id.tvPostTime)
-        private val shareLabel: TextView = itemView.findViewById(R.id.tvShareLabel)
 
         fun bind(message: Message, onLongClick: (Message) -> Unit) {
             val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
-            timeText.text = sdf.format(Date(message.timestamp * 1000))
+            val time = sdf.format(Date(message.timestamp * 1000))
+
+            // Add vanish mode indicator to time
+            val timeWithIndicator = if (message.vanishMode) {
+                "👻 $time"
+            } else {
+                time
+            }
+
+            timeText.text = timeWithIndicator
+
+            // Change text color for vanish mode
+            if (message.vanishMode) {
+                timeText.setTextColor(android.graphics.Color.parseColor("#B19CD9"))
+            } else {
+                timeText.setTextColor(android.graphics.Color.parseColor("#999999"))
+            }
 
             message.sharedPostId?.let { postId ->
                 loadSharedPostData(postId, postImage, postUsername, postCaption)
@@ -141,7 +156,7 @@ class MessageAdapter(
             usernameView: TextView,
             captionView: TextView
         ) {
-            val url = "http://192.168.18.35/socially_app/get_post_details.php?post_id=$postId"
+            val url = "http://192.168.100.76/socially_app/get_post_details.php?post_id=$postId"
 
             val request = StringRequest(
                 Request.Method.GET, url,
@@ -186,11 +201,26 @@ class MessageAdapter(
         private val postUsername: TextView = itemView.findViewById(R.id.tvPostUsername)
         private val postCaption: TextView = itemView.findViewById(R.id.tvPostCaption)
         private val timeText: TextView = itemView.findViewById(R.id.tvPostTime)
-        private val shareLabel: TextView = itemView.findViewById(R.id.tvShareLabel)
 
         fun bind(message: Message) {
             val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
-            timeText.text = sdf.format(Date(message.timestamp * 1000))
+            val time = sdf.format(Date(message.timestamp * 1000))
+
+            // Add vanish mode indicator to time
+            val timeWithIndicator = if (message.vanishMode) {
+                "👻 $time"
+            } else {
+                time
+            }
+
+            timeText.text = timeWithIndicator
+
+            // Change text color for vanish mode
+            if (message.vanishMode) {
+                timeText.setTextColor(android.graphics.Color.parseColor("#B19CD9"))
+            } else {
+                timeText.setTextColor(android.graphics.Color.parseColor("#666666"))
+            }
 
             message.sharedPostId?.let { postId ->
                 loadSharedPostData(postId, postImage, postUsername, postCaption)
@@ -206,7 +236,7 @@ class MessageAdapter(
             usernameView: TextView,
             captionView: TextView
         ) {
-            val url = "http://192.168.18.35/socially_app/get_post_details.php?post_id=$postId"
+            val url = "http://192.168.100.76/socially_app/get_post_details.php?post_id=$postId"
 
             val request = StringRequest(
                 Request.Method.GET, url,
@@ -246,7 +276,7 @@ class MessageAdapter(
         }
     }
 
-    // Original ViewHolders (kept unchanged)
+    // Original ViewHolders with Vanish Mode Support
     class SentMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvMessage: TextView = itemView.findViewById(R.id.tvSentMessage)
         private val tvTime: TextView = itemView.findViewById(R.id.tvSentTime)
@@ -260,7 +290,23 @@ class MessageAdapter(
         fun bind(message: Message, onLongClick: (Message) -> Unit) {
             val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
             val time = sdf.format(Date(message.timestamp * 1000))
-            tvTime.text = if (message.isEdited) "$time (edited)" else time
+
+            // Add vanish mode indicator and edited flag
+            val timeWithIndicator = when {
+                message.vanishMode && message.isEdited -> "👻 $time (edited)"
+                message.vanishMode -> "👻 $time"
+                message.isEdited -> "$time (edited)"
+                else -> time
+            }
+
+            tvTime.text = timeWithIndicator
+
+            // Change time color for vanish mode
+            if (message.vanishMode) {
+                tvTime.setTextColor(android.graphics.Color.parseColor("#B19CD9"))
+            } else {
+                tvTime.setTextColor(android.graphics.Color.parseColor("#999999"))
+            }
 
             // Clean up previous video
             currentVideoFile?.let { if (it.exists()) it.delete() }
@@ -273,18 +319,28 @@ class MessageAdapter(
                     ivImage.visibility = View.GONE
                     flVideo.visibility = View.GONE
                     tvMessage.text = message.content
+
+                    // Change text color for vanish mode
+                    if (message.vanishMode) {
+                        tvMessage.setTextColor(android.graphics.Color.parseColor("#B19CD9"))
+                        // Optional: Add slight transparency for vanish effect
+                        tvMessage.alpha = 0.95f
+                    } else {
+                        tvMessage.setTextColor(android.graphics.Color.WHITE)
+                        tvMessage.alpha = 1.0f
+                    }
                 }
                 "image" -> {
                     tvMessage.visibility = View.GONE
                     ivImage.visibility = View.VISIBLE
                     flVideo.visibility = View.GONE
-                    loadImage(ivImage, message.mediaPath)
+                    loadImage(ivImage, message.mediaPath, message.vanishMode)
                 }
                 "video" -> {
                     tvMessage.visibility = View.GONE
                     ivImage.visibility = View.GONE
                     flVideo.visibility = View.VISIBLE
-                    loadVideo(vvVideo, ivPlayButton, message.mediaPath, message.id)
+                    loadVideo(vvVideo, ivPlayButton, message.mediaPath, message.id, message.vanishMode)
                 }
                 else -> {
                     tvMessage.visibility = View.VISIBLE
@@ -300,16 +356,23 @@ class MessageAdapter(
             }
         }
 
-        private fun loadImage(imageView: ImageView, path: String) {
+        private fun loadImage(imageView: ImageView, path: String, isVanishMode: Boolean) {
             if (path.startsWith("data:image")) {
                 val base64 = path.substringAfter("base64,")
                 val decodedBytes = Base64.decode(base64, Base64.DEFAULT)
                 val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
                 imageView.setImageBitmap(bitmap)
+
+                // Optional: Add slight transparency for vanish mode
+                if (isVanishMode) {
+                    imageView.alpha = 0.95f
+                } else {
+                    imageView.alpha = 1.0f
+                }
             }
         }
 
-        private fun loadVideo(videoView: VideoView, playButton: ImageView, path: String, messageId: Int) {
+        private fun loadVideo(videoView: VideoView, playButton: ImageView, path: String, messageId: Int, isVanishMode: Boolean) {
             if (path.startsWith("data:video")) {
                 try {
                     val base64 = path.substringAfter("base64,")
@@ -320,8 +383,6 @@ class MessageAdapter(
                     if (!tempFile.exists() || tempFile.length() == 0L) {
                         tempFile.writeBytes(decodedBytes)
                         android.util.Log.d("MessageAdapter", "Video file created: ${tempFile.absolutePath}, size: ${tempFile.length()}")
-                    } else {
-                        android.util.Log.d("MessageAdapter", "Using existing video file: ${tempFile.absolutePath}")
                     }
 
                     currentVideoFile = tempFile
@@ -333,6 +394,13 @@ class MessageAdapter(
                     videoView.setMediaController(mediaController)
 
                     playButton.visibility = View.VISIBLE
+
+                    // Optional: Change play button for vanish mode
+                    if (isVanishMode) {
+                        playButton.alpha = 0.9f
+                    } else {
+                        playButton.alpha = 1.0f
+                    }
 
                     videoView.setOnPreparedListener { mp ->
                         android.util.Log.d("MessageAdapter", "Video prepared successfully")
@@ -349,41 +417,13 @@ class MessageAdapter(
                     }
 
                     videoView.setOnErrorListener { mp, what, extra ->
-                        android.util.Log.e("MessageAdapter", "Video error: what=$what, extra=$extra, path=${tempFile.absolutePath}, exists=${tempFile.exists()}")
+                        android.util.Log.e("MessageAdapter", "Video error: what=$what, extra=$extra")
                         playButton.visibility = View.VISIBLE
                         true
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("MessageAdapter", "Error loading video: ${e.message}", e)
                     playButton.visibility = View.VISIBLE
-                }
-            } else if (path.startsWith("http")) {
-                videoView.setVideoURI(Uri.parse(path))
-
-                val mediaController = MediaController(videoView.context)
-                mediaController.setAnchorView(videoView)
-                videoView.setMediaController(mediaController)
-
-                playButton.visibility = View.VISIBLE
-
-                videoView.setOnPreparedListener { mp ->
-                    android.util.Log.d("MessageAdapter", "Video from URL prepared")
-                }
-
-                playButton.setOnClickListener {
-                    playButton.visibility = View.GONE
-                    videoView.start()
-                }
-
-                videoView.setOnCompletionListener {
-                    playButton.visibility = View.VISIBLE
-                    videoView.seekTo(0)
-                }
-
-                videoView.setOnErrorListener { mp, what, extra ->
-                    android.util.Log.e("MessageAdapter", "Video URL error: what=$what, extra=$extra")
-                    playButton.visibility = View.VISIBLE
-                    true
                 }
             }
         }
@@ -400,7 +440,23 @@ class MessageAdapter(
         fun bind(message: Message) {
             val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
             val time = sdf.format(Date(message.timestamp * 1000))
-            tvTime.text = if (message.isEdited) "$time (edited)" else time
+
+            // Add vanish mode indicator and edited flag
+            val timeWithIndicator = when {
+                message.vanishMode && message.isEdited -> "👻 $time (edited)"
+                message.vanishMode -> "👻 $time"
+                message.isEdited -> "$time (edited)"
+                else -> time
+            }
+
+            tvTime.text = timeWithIndicator
+
+            // Change time color for vanish mode
+            if (message.vanishMode) {
+                tvTime.setTextColor(android.graphics.Color.parseColor("#B19CD9"))
+            } else {
+                tvTime.setTextColor(android.graphics.Color.parseColor("#666666"))
+            }
 
             when (message.messageType) {
                 "text" -> {
@@ -408,18 +464,27 @@ class MessageAdapter(
                     ivImage.visibility = View.GONE
                     flVideo.visibility = View.GONE
                     tvMessage.text = message.content
+
+                    // Change text color for vanish mode
+                    if (message.vanishMode) {
+                        tvMessage.setTextColor(android.graphics.Color.parseColor("#B19CD9"))
+                        tvMessage.alpha = 0.95f
+                    } else {
+                        tvMessage.setTextColor(android.graphics.Color.parseColor("#000000"))
+                        tvMessage.alpha = 1.0f
+                    }
                 }
                 "image" -> {
                     tvMessage.visibility = View.GONE
                     ivImage.visibility = View.VISIBLE
                     flVideo.visibility = View.GONE
-                    loadImage(ivImage, message.mediaPath)
+                    loadImage(ivImage, message.mediaPath, message.vanishMode)
                 }
                 "video" -> {
                     tvMessage.visibility = View.GONE
                     ivImage.visibility = View.GONE
                     flVideo.visibility = View.VISIBLE
-                    loadVideo(vvVideo, ivPlayButton, message.mediaPath)
+                    loadVideo(vvVideo, ivPlayButton, message.mediaPath, message.vanishMode)
                 }
                 else -> {
                     tvMessage.visibility = View.VISIBLE
@@ -430,16 +495,22 @@ class MessageAdapter(
             }
         }
 
-        private fun loadImage(imageView: ImageView, path: String) {
+        private fun loadImage(imageView: ImageView, path: String, isVanishMode: Boolean) {
             if (path.startsWith("data:image")) {
                 val base64 = path.substringAfter("base64,")
                 val decodedBytes = Base64.decode(base64, Base64.DEFAULT)
                 val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
                 imageView.setImageBitmap(bitmap)
+
+                if (isVanishMode) {
+                    imageView.alpha = 0.95f
+                } else {
+                    imageView.alpha = 1.0f
+                }
             }
         }
 
-        private fun loadVideo(videoView: VideoView, playButton: ImageView, path: String) {
+        private fun loadVideo(videoView: VideoView, playButton: ImageView, path: String, isVanishMode: Boolean) {
             if (path.startsWith("data:video")) {
                 try {
                     val base64 = path.substringAfter("base64,")
@@ -455,6 +526,13 @@ class MessageAdapter(
                     videoView.setMediaController(mediaController)
 
                     playButton.visibility = View.VISIBLE
+
+                    if (isVanishMode) {
+                        playButton.alpha = 0.9f
+                    } else {
+                        playButton.alpha = 1.0f
+                    }
+
                     playButton.setOnClickListener {
                         playButton.visibility = View.GONE
                         videoView.start()
@@ -466,23 +544,6 @@ class MessageAdapter(
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("MessageAdapter", "Error loading video: ${e.message}")
-                }
-            } else if (path.startsWith("http")) {
-                videoView.setVideoURI(Uri.parse(path))
-
-                val mediaController = MediaController(videoView.context)
-                mediaController.setAnchorView(videoView)
-                videoView.setMediaController(mediaController)
-
-                playButton.visibility = View.VISIBLE
-                playButton.setOnClickListener {
-                    playButton.visibility = View.GONE
-                    videoView.start()
-                }
-
-                videoView.setOnCompletionListener {
-                    playButton.visibility = View.VISIBLE
-                    videoView.seekTo(0)
                 }
             }
         }

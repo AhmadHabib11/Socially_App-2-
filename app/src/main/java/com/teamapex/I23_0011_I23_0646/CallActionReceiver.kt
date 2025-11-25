@@ -11,7 +11,7 @@ class CallActionReceiver : BroadcastReceiver() {
     private val client = OkHttpClient()
 
     companion object {
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://192.168.100.76/socially_app/"
     }
 
     override fun onReceive(context: Context?, intent: Intent?) {

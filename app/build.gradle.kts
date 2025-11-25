@@ -52,6 +52,7 @@ dependencies {
     // OkHttp for networking
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
 
+
     implementation("androidx.recyclerview:recyclerview:1.3.1")
 // Material Design Components
     implementation("com.google.android.material:material:1.9.0")

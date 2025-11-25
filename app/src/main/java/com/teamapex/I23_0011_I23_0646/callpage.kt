@@ -49,7 +49,7 @@ class callpage : AppCompatActivity() {
     private var statusCheckRunnable: Runnable? = null
 
     companion object {
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://192.168.100.76/socially_app/"
         private const val AGORA_APP_ID = "99ee06ca3522461d9a065a7ffd778724" // Replace with your Agora App ID
     }
 

@@ -32,7 +32,7 @@ class IncomingCallActivity : AppCompatActivity() {
     private var channelName = ""
 
     companion object {
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://192.168.100.76/socially_app/"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

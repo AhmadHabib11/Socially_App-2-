@@ -11,9 +11,9 @@ class MessageDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABA
         private const val DATABASE_NAME = "messages.db"
         private const val DATABASE_VERSION = 4
 
-        // Messages table - FIXED: Changed message_id to id to match your database
+        // Messages table
         const val TABLE_MESSAGES = "messages"
-        const val COLUMN_MESSAGE_ID = "id"  // ← CHANGED FROM "message_id" to "id"
+        const val COLUMN_MESSAGE_ID = "id"
         const val COLUMN_CHAT_ID = "chat_id"
         const val COLUMN_SENDER_ID = "sender_id"
         const val COLUMN_MESSAGE_TYPE = "message_type"
@@ -76,21 +76,17 @@ class MessageDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABA
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Handle version 1 -> 2+ : add shared_post_id to messages
         if (oldVersion < 3) {
             try {
                 db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COLUMN_SHARED_POST_ID INTEGER")
             } catch (e: Exception) {
-                // Column might already exist, ignore
+                // Column might already exist
             }
         }
 
-        // Handle version 3 -> 4: Recreate chats table with all columns
         if (oldVersion < 4) {
             try {
-                // Drop old chats table
                 db.execSQL("DROP TABLE IF EXISTS $TABLE_CHATS")
-                // Recreate with correct schema
                 db.execSQL(CREATE_CHATS_TABLE)
             } catch (e: Exception) {
                 android.util.Log.e("DBUpgrade", "Error upgrading chats table: ${e.message}")
@@ -232,16 +228,105 @@ class MessageDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABA
     // Delete a message (mark as deleted)
     fun deleteMessage(messageId: Int) {
         val db = writableDatabase
-        val values = ContentValues().apply {
-            put(COLUMN_IS_DELETED, 1)
-        }
 
-        db.update(
+        // Actually delete from database (not just mark as deleted)
+        val deleted = db.delete(
             TABLE_MESSAGES,
-            values,
             "$COLUMN_MESSAGE_ID = ?",
             arrayOf(messageId.toString())
         )
+
+        android.util.Log.d("MessageDB", "Deleted message $messageId from local cache: $deleted rows affected")
+    }
+
+    // NEW: Delete all vanish mode messages for a specific chat and user
+    fun deleteVanishMessages(chatId: String, userId: String) {
+        val db = writableDatabase
+
+        // Get all vanish mode messages
+        val cursor = db.query(
+            TABLE_MESSAGES,
+            arrayOf(COLUMN_MESSAGE_ID, COLUMN_SENDER_ID, COLUMN_SEEN_BY),
+            "$COLUMN_CHAT_ID = ? AND $COLUMN_VANISH_MODE = 1",
+            arrayOf(chatId),
+            null,
+            null,
+            null
+        )
+
+        val messagesToDelete = mutableListOf<Int>()
+
+        cursor.use {
+            while (it.moveToNext()) {
+                val messageId = it.getInt(0)
+                val senderId = it.getString(1)
+                val seenBy = it.getString(2)
+
+                // Check if message has been seen by both users
+                val seenByList = seenBy.split(",").filter { id -> id.isNotEmpty() }
+
+                // If we received this message and saw it, delete it
+                if (senderId != userId && seenByList.contains(userId)) {
+                    messagesToDelete.add(messageId)
+                }
+            }
+        }
+
+        // Delete the messages
+        if (messagesToDelete.isNotEmpty()) {
+            val placeholders = messagesToDelete.joinToString(",") { "?" }
+            val args = messagesToDelete.map { it.toString() }.toTypedArray()
+
+            val deleted = db.delete(
+                TABLE_MESSAGES,
+                "$COLUMN_MESSAGE_ID IN ($placeholders)",
+                args
+            )
+
+            android.util.Log.d("MessageDB", "Deleted $deleted vanish messages from local cache")
+        }
+    }
+
+    // NEW: Get all vanish mode messages for a chat
+    fun getVanishMessages(chatId: String): List<Message> {
+        val messages = mutableListOf<Message>()
+        val db = readableDatabase
+
+        val cursor = db.query(
+            TABLE_MESSAGES,
+            null,
+            "$COLUMN_CHAT_ID = ? AND $COLUMN_VANISH_MODE = 1",
+            arrayOf(chatId),
+            null,
+            null,
+            "$COLUMN_TIMESTAMP ASC"
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                val message = Message(
+                    id = it.getInt(it.getColumnIndexOrThrow(COLUMN_MESSAGE_ID)),
+                    chatId = it.getString(it.getColumnIndexOrThrow(COLUMN_CHAT_ID)),
+                    senderId = it.getString(it.getColumnIndexOrThrow(COLUMN_SENDER_ID)),
+                    messageType = it.getString(it.getColumnIndexOrThrow(COLUMN_MESSAGE_TYPE)),
+                    content = it.getString(it.getColumnIndexOrThrow(COLUMN_CONTENT)),
+                    mediaPath = it.getString(it.getColumnIndexOrThrow(COLUMN_MEDIA_PATH)),
+                    timestamp = it.getLong(it.getColumnIndexOrThrow(COLUMN_TIMESTAMP)),
+                    vanishMode = true,
+                    isDeleted = it.getInt(it.getColumnIndexOrThrow(COLUMN_IS_DELETED)) == 1,
+                    isEdited = it.getInt(it.getColumnIndexOrThrow(COLUMN_IS_EDITED)) == 1,
+                    seenBy = it.getString(it.getColumnIndexOrThrow(COLUMN_SEEN_BY)),
+                    deliveryStatus = it.getString(it.getColumnIndexOrThrow(COLUMN_DELIVERY_STATUS)),
+                    sharedPostId = if (it.isNull(it.getColumnIndexOrThrow(COLUMN_SHARED_POST_ID)))
+                        null
+                    else
+                        it.getInt(it.getColumnIndexOrThrow(COLUMN_SHARED_POST_ID))
+                )
+                messages.add(message)
+            }
+        }
+
+        return messages
     }
 
     // Clear all messages for a specific chat
@@ -259,5 +344,105 @@ class MessageDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABA
         val db = writableDatabase
         db.execSQL("DELETE FROM $TABLE_MESSAGES")
         db.execSQL("DELETE FROM $TABLE_CHATS")
+    }
+
+    // NEW: Remove deleted messages from cache
+    fun removeDeletedMessages(chatId: String, validMessageIds: List<Int>) {
+        val db = writableDatabase
+
+        // Get all cached message IDs for this chat
+        val allIds = mutableListOf<Int>()
+        val cursor = db.query(
+            TABLE_MESSAGES,
+            arrayOf(COLUMN_MESSAGE_ID),
+            "$COLUMN_CHAT_ID = ?",
+            arrayOf(chatId),
+            null, null, null
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                allIds.add(it.getInt(0))
+            }
+        }
+
+        // Find IDs that should be deleted (exist locally but not on server)
+        val idsToDelete = allIds.filter { !validMessageIds.contains(it) }
+
+        if (idsToDelete.isNotEmpty()) {
+            val placeholders = idsToDelete.joinToString(",") { "?" }
+            val args = idsToDelete.map { it.toString() }.toTypedArray()
+
+            val deleted = db.delete(
+                TABLE_MESSAGES,
+                "$COLUMN_MESSAGE_ID IN ($placeholders)",
+                args
+            )
+
+            android.util.Log.d("MessageDB", "Removed $deleted deleted messages from cache")
+        }
+    }
+
+    // NEW: Remove deleted chat from cache
+    fun removeDeletedChat(chatId: String) {
+        val db = writableDatabase
+
+        // Delete the chat
+        db.delete(
+            TABLE_CHATS,
+            "$COLUMN_CHAT_ID_PK = ?",
+            arrayOf(chatId)
+        )
+
+        // Also delete all messages for this chat
+        db.delete(
+            TABLE_MESSAGES,
+            "$COLUMN_CHAT_ID = ?",
+            arrayOf(chatId)
+        )
+
+        android.util.Log.d("MessageDB", "Removed chat $chatId and all its messages from cache")
+    }
+
+    // NEW: Get cached message IDs
+    fun getCachedMessageIds(chatId: String): List<Int> {
+        val db = readableDatabase
+        val ids = mutableListOf<Int>()
+
+        val cursor = db.query(
+            TABLE_MESSAGES,
+            arrayOf(COLUMN_MESSAGE_ID),
+            "$COLUMN_CHAT_ID = ?",
+            arrayOf(chatId),
+            null, null, null
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                ids.add(it.getInt(0))
+            }
+        }
+
+        return ids
+    }
+
+    // NEW: Get cached chat IDs
+    fun getCachedChatIds(): List<String> {
+        val db = readableDatabase
+        val ids = mutableListOf<String>()
+
+        val cursor = db.query(
+            TABLE_CHATS,
+            arrayOf(COLUMN_CHAT_ID_PK),
+            null, null, null, null, null
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                ids.add(it.getString(0))
+            }
+        }
+
+        return ids
     }
 }

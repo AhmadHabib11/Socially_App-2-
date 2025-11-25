@@ -28,7 +28,7 @@ class chatlist : AppCompatActivity() {
     private var currentUserId = ""
 
     companion object {
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://192.168.100.76/socially_app/"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -168,7 +168,6 @@ class chatlist : AppCompatActivity() {
                             val chatsArray = json.getJSONArray("chats")
                             android.util.Log.d("ChatList", "Fetched ${chatsArray.length()} chats from server")
 
-                            // Don't clear - just update existing chats
                             for (i in 0 until chatsArray.length()) {
                                 val chatJson = chatsArray.getJSONObject(i)
 
@@ -190,10 +189,67 @@ class chatlist : AppCompatActivity() {
                                 chatAdapter.addChat(chat)
                                 dbHelper.cacheChat(chat)
                             }
+
+                            // NEW: Check for deleted chats
+                            checkForDeletedChats()
                         }
                     } catch (e: Exception) {
                         android.util.Log.e("ChatList", "Error parsing chats: ${e.message}")
                         e.printStackTrace()
+                    }
+                }
+            }
+        })
+    }
+
+    // ADD THIS NEW METHOD
+    private fun checkForDeletedChats() {
+        val cachedChatIds = dbHelper.getCachedChatIds()
+
+        if (cachedChatIds.isEmpty()) return
+
+        // Convert to comma-separated string with quotes
+        val idsString = cachedChatIds.joinToString(",") { "'$it'" }
+        val url = "${BASE_URL}check_deleted_chats.php?user_id=$currentUserId&chat_ids=$idsString"
+
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                android.util.Log.e("ChatList", "Failed to check deleted chats: ${e.message}")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseData = response.body?.string()
+                runOnUiThread {
+                    try {
+                        val json = JSONObject(responseData ?: "{}")
+                        if (json.getInt("statuscode") == 200) {
+                            val existingIdsArray = json.getJSONArray("existing_ids")
+                            val existingIds = mutableListOf<String>()
+
+                            for (i in 0 until existingIdsArray.length()) {
+                                existingIds.add(existingIdsArray.getString(i))
+                            }
+
+                            // Find chats that were deleted
+                            val deletedChatIds = cachedChatIds.filter { !existingIds.contains(it) }
+
+                            if (deletedChatIds.isNotEmpty()) {
+                                android.util.Log.d("ChatList", "Found ${deletedChatIds.size} deleted chats")
+
+                                // Remove from adapter and database
+                                deletedChatIds.forEach { chatId ->
+                                    chatAdapter.removeChat(chatId)
+                                    dbHelper.removeDeletedChat(chatId)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ChatList", "Error checking deleted chats: ${e.message}")
                     }
                 }
             }

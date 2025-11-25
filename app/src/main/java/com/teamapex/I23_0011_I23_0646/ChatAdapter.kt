@@ -25,7 +25,7 @@ class ChatAdapter(
 ) : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
 
     companion object {
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://192.168.100.76/socially_app/"
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
@@ -53,9 +53,40 @@ class ChatAdapter(
         }
     }
 
+    fun removeChat(chatId: String) {
+        val index = chats.indexOfFirst { it.chatId == chatId }
+        if (index != -1) {
+            val removedChat = chats[index]
+            chats.removeAt(index)
+            notifyItemRemoved(index)
+            Log.d("ChatAdapter", "Removed deleted chat: ${removedChat.username} (ID: $chatId)")
+        }
+    }
+
     fun clearChats() {
+        val size = chats.size
         chats.clear()
-        notifyDataSetChanged()
+        notifyItemRangeRemoved(0, size)
+        Log.d("ChatAdapter", "Cleared all chats")
+    }
+
+    fun getChat(chatId: String): Chat? {
+        return chats.find { it.chatId == chatId }
+    }
+
+    fun getChatPosition(chatId: String): Int {
+        return chats.indexOfFirst { it.chatId == chatId }
+    }
+
+    fun updateChatPosition(chatId: String) {
+        val index = chats.indexOfFirst { it.chatId == chatId }
+        if (index > 0) {
+            val chat = chats.removeAt(index)
+            chats.add(0, chat)
+            notifyItemMoved(index, 0)
+            notifyItemChanged(0)
+            Log.d("ChatAdapter", "Moved chat to top: ${chat.username}")
+        }
     }
 
     class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -149,11 +180,48 @@ class ChatAdapter(
             lastMessage.alpha = if (chat.lastMessage.isEmpty()) 0.5f else 1.0f
 
             // Format timestamp
-            val sdf = SimpleDateFormat("MMM d", Locale.getDefault())
-            timestamp.text = sdf.format(Date(chat.timestamp * 1000))
+            timestamp.text = formatTimestamp(chat.timestamp)
 
             itemView.setOnClickListener {
                 onClick(chat)
+            }
+        }
+
+        private fun formatTimestamp(timestamp: Long): String {
+            val messageTime = Date(timestamp * 1000)
+            val now = Date()
+            val calendar = Calendar.getInstance()
+
+            calendar.time = now
+            val todayStart = calendar.apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+
+            calendar.time = now
+            calendar.add(Calendar.DAY_OF_YEAR, -1)
+            val yesterdayStart = calendar.apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+
+            return when {
+                messageTime.time >= todayStart -> {
+                    // Today - show time
+                    SimpleDateFormat("h:mm a", Locale.getDefault()).format(messageTime)
+                }
+                messageTime.time >= yesterdayStart -> {
+                    // Yesterday
+                    "Yesterday"
+                }
+                else -> {
+                    // Older - show date
+                    SimpleDateFormat("MMM d", Locale.getDefault()).format(messageTime)
+                }
             }
         }
 

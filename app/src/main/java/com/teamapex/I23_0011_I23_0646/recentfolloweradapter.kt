@@ -54,7 +54,7 @@ class RecentFollowerAdapter(
                 return
             }
 
-            val url = "http://192.168.18.35/socially_app/get_profile_pic.php?path=$profilePicPath"
+            val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
 
             val request = StringRequest(
                 Request.Method.GET, url,

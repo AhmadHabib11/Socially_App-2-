@@ -28,6 +28,8 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class dmscreen : AppCompatActivity() {
 
@@ -43,10 +45,15 @@ class dmscreen : AppCompatActivity() {
 
     private lateinit var dbHelper: MessageDatabaseHelper
     private lateinit var sessionManager: SessionManager
+    private lateinit var vanishModeManager: VanishModeManager
+    private lateinit var screenshotDetector: ScreenshotDetector
+    private lateinit var screenshotNotificationManager: ScreenshotNotificationManager
+    private lateinit var offlineRepository: OfflineRepository
 
     private val client = OkHttpClient()
     private val handler = Handler(Looper.getMainLooper())
     private var pollingRunnable: Runnable? = null
+    private var screenshotCheckRunnable: Runnable? = null
 
     private var chatId = ""
     private var otherUserId = ""
@@ -55,6 +62,9 @@ class dmscreen : AppCompatActivity() {
     private var currentUserId = ""
     private var vanishMode = false
     private var lastTimestamp = 0L
+    private var isLeavingChat = false
+    private var lastScreenshotCheck = 0L
+    private var isOnline = true
 
     companion object {
         private const val PICK_IMAGE = 1
@@ -64,6 +74,8 @@ class dmscreen : AppCompatActivity() {
         private const val BASE_URL = "http://192.168.18.35/socially_app/"
         private const val MAX_VIDEO_SIZE = 10 * 1024 * 1024 // 10MB limit
         private const val PERMISSION_REQ_ID = 22
+        private const val NOTIFICATION_PERMISSION_REQ_ID = 100
+        private const val STORAGE_PERMISSION_REQ_ID = 101
         private val REQUESTED_PERMISSIONS = arrayOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.CAMERA
@@ -74,22 +86,179 @@ class dmscreen : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.dmscreen)
 
+        // Initialize offline repository
+        offlineRepository = (application as SociallyApplication).offlineRepository
+
         sessionManager = SessionManager(this)
         currentUserId = sessionManager.getUserId() ?: ""
 
         dbHelper = MessageDatabaseHelper(this)
+        vanishModeManager = VanishModeManager(this)
+        screenshotNotificationManager = ScreenshotNotificationManager(this)
 
         chatId = intent.getStringExtra("chatId") ?: ""
         otherUserId = intent.getStringExtra("userId") ?: ""
         otherUsername = intent.getStringExtra("username") ?: ""
         otherUserProfileImage = intent.getStringExtra("profileImage") ?: ""
 
+        // Initialize screenshot detector
+        screenshotDetector = ScreenshotDetector(this) {
+            onScreenshotDetected()
+        }
+
         initializeViews()
         setupRecyclerView()
         loadCachedMessages()
         markExistingMessagesAsSeen()
-        startPollingMessages()
         setupListeners()
+
+        // Request notification permission for Android 13+
+        requestNotificationPermission()
+
+        // Request storage permission for screenshot detection
+        requestStoragePermission()
+
+        // Observe network connectivity
+        lifecycleScope.launch {
+            NetworkUtil.observeNetworkConnectivity(this@dmscreen)
+                .collect { connected ->
+                    isOnline = connected
+                    updateNetworkStatus(connected)
+                }
+        }
+
+        // Start polling messages if online
+        if (isOnline) {
+            startPollingMessages()
+        }
+    }
+
+    private fun updateNetworkStatus(connected: Boolean) {
+        runOnUiThread {
+            if (!connected) {
+                Toast.makeText(this, "⚠ Offline mode - messages will sync when online", Toast.LENGTH_SHORT).show()
+            } else {
+                // Check for pending messages to sync
+                lifecycleScope.launch {
+                    val pendingCount = offlineRepository.getPendingActionsCount()
+                    if (pendingCount > 0) {
+                        Toast.makeText(
+                            this@dmscreen,
+                            "📤 Syncing $pendingCount pending messages...",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        SyncWorker.triggerImmediateSync(this@dmscreen)
+                    }
+                }
+                // Restart polling when back online
+                startPollingMessages()
+            }
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    NOTIFICATION_PERMISSION_REQ_ID
+                )
+            }
+        }
+    }
+
+    private fun requestStoragePermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.READ_MEDIA_IMAGES
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES),
+                    STORAGE_PERMISSION_REQ_ID
+                )
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE),
+                    STORAGE_PERMISSION_REQ_ID
+                )
+            }
+        }
+    }
+
+    private fun onScreenshotDetected() {
+        android.util.Log.d("dmscreen", "📸 Screenshot detected in chat!")
+
+        // Notify the other user
+        screenshotNotificationManager.notifyScreenshotTaken(
+            chatId = chatId,
+            screenshotTakerUserId = currentUserId,
+            screenshotTakerUsername = sessionManager.getUsername() ?: "Someone",
+            otherUserId = otherUserId
+        )
+
+        // Show visual feedback to screenshot taker
+        Toast.makeText(
+            this,
+            "$otherUsername will be notified that you took a screenshot",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    private fun checkScreenshotNotifications() {
+        screenshotNotificationManager.checkNotifications(
+            userId = currentUserId,
+            lastCheckTimestamp = lastScreenshotCheck
+        ) { notifications ->
+            runOnUiThread {
+                notifications.forEach { notification ->
+                    screenshotNotificationManager.showScreenshotAlert(
+                        username = notification.screenshotTakerUsername,
+                        chatId = notification.chatId
+                    )
+                    lastScreenshotCheck = notification.timestamp
+                    android.util.Log.d("dmscreen", "📸 ${notification.screenshotTakerUsername} took a screenshot")
+                }
+            }
+        }
+    }
+
+    private fun handleVanishModeExit() {
+        android.util.Log.d("dmscreen", "=== HANDLING VANISH MODE EXIT ===")
+
+        vanishModeManager.deleteSeenVanishMessages(chatId, currentUserId) { success, deletedCount ->
+            android.util.Log.d("dmscreen", "Vanish delete callback: success=$success, count=$deletedCount")
+
+            if (success && deletedCount > 0) {
+                android.util.Log.d("dmscreen", "Deleted $deletedCount vanish messages on exit")
+
+                runOnUiThread {
+                    val cachedMessages = dbHelper.getCachedMessages(chatId)
+                    var localDeletedCount = 0
+
+                    cachedMessages.filter { it.vanishMode }.forEach { message ->
+                        dbHelper.deleteMessage(message.id)
+                        localDeletedCount++
+                    }
+
+                    android.util.Log.d("dmscreen", "Deleted $localDeletedCount vanish messages from local cache")
+                }
+            }
+        }
     }
 
     private fun markExistingMessagesAsSeen() {
@@ -107,11 +276,17 @@ class dmscreen : AppCompatActivity() {
         btnSend = findViewById(R.id.btnSend)
         galleryBtn = findViewById(R.id.gallery)
         cameraBtn = findViewById(R.id.camerabtn)
-        videoBtn = findViewById(R.id.videobtn) // Add this to your layout
+        videoBtn = findViewById(R.id.videobtn)
         vanishModeBtn = findViewById(R.id.vanishModeBtn)
         usernameTextView = findViewById(R.id.username)
 
         usernameTextView.text = otherUsername
+
+        // Long press on username for debug menu
+        usernameTextView.setOnLongClickListener {
+            showDebugMenu()
+            true
+        }
 
         val profileImageView = findViewById<ImageView>(R.id.dp)
 
@@ -130,6 +305,8 @@ class dmscreen : AppCompatActivity() {
         }
 
         findViewById<ImageView>(R.id.backArrow).setOnClickListener {
+            isLeavingChat = true
+            handleVanishModeExit()
             finish()
         }
 
@@ -151,7 +328,6 @@ class dmscreen : AppCompatActivity() {
                 requestCallPermissions()
             }
         }
-
     }
 
     private fun checkCallPermissions(): Boolean {
@@ -170,11 +346,31 @@ class dmscreen : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_REQ_ID) {
-            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                Toast.makeText(this, "Permissions granted", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Permissions required for calls", Toast.LENGTH_SHORT).show()
+        when (requestCode) {
+            PERMISSION_REQ_ID -> {
+                if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    Toast.makeText(this, "Call permissions granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Call permissions required", Toast.LENGTH_SHORT).show()
+                }
+            }
+            NOTIFICATION_PERMISSION_REQ_ID -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    android.util.Log.d("dmscreen", "✓ Notification permission granted")
+                    Toast.makeText(this, "Notification permission granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    android.util.Log.w("dmscreen", "⚠ Notification permission denied")
+                    Toast.makeText(this, "Notification permission is needed for screenshot alerts", Toast.LENGTH_LONG).show()
+                }
+            }
+            STORAGE_PERMISSION_REQ_ID -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    android.util.Log.d("dmscreen", "✓ Storage permission granted")
+                    Toast.makeText(this, "Storage permission granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    android.util.Log.w("dmscreen", "⚠ Storage permission denied")
+                    Toast.makeText(this, "Storage permission is needed for screenshot detection", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -230,7 +426,6 @@ class dmscreen : AppCompatActivity() {
         })
     }
 
-
     private fun loadProfilePicture(profilePicPath: String, imageView: ImageView) {
         if (profilePicPath.isEmpty()) {
             imageView.setImageResource(R.drawable.story1)
@@ -281,21 +476,34 @@ class dmscreen : AppCompatActivity() {
     }
 
     private fun loadCachedMessages() {
-        val cachedMessages = dbHelper.getCachedMessages(chatId)
+        lifecycleScope.launch {
+            try {
+                val cachedMessages = offlineRepository.getCachedMessages(chatId)
 
-        android.util.Log.e("CACHE_CHECK", "=== Loading cached messages ===")
-        android.util.Log.e("CACHE_CHECK", "Total messages: ${cachedMessages.size}")
+                android.util.Log.d("dmscreen_offline", "Loaded ${cachedMessages.size} cached messages")
+                android.util.Log.e("CACHE_CHECK", "=== Loading cached messages ===")
+                android.util.Log.e("CACHE_CHECK", "Total messages: ${cachedMessages.size}")
 
-        cachedMessages.forEach { msg ->
-            android.util.Log.e("CACHE_CHECK", "Message ID=${msg.id}, Type=${msg.messageType}, VanishMode=${msg.vanishMode}")
-            if (msg.messageType == "image" || msg.messageType == "video") {
-                android.util.Log.e("CACHE_CHECK", "${msg.messageType.uppercase()} - mediaPath is empty: ${msg.mediaPath.isEmpty()}, starts with data: = ${msg.mediaPath.startsWith("data:")}")
+                cachedMessages.forEach { msg ->
+                    android.util.Log.e("CACHE_CHECK", "Message ID=${msg.id}, Type=${msg.messageType}, VanishMode=${msg.vanishMode}")
+
+                    // Only show message if it should be visible based on vanish mode rules
+                    if (vanishModeManager.shouldShowMessage(msg, currentUserId)) {
+                        if (msg.messageType == "image" || msg.messageType == "video") {
+                            android.util.Log.e("CACHE_CHECK", "${msg.messageType.uppercase()} - mediaPath is empty: ${msg.mediaPath.isEmpty()}, starts with data: = ${msg.mediaPath.startsWith("data:")}")
+                        }
+                        messageAdapter.addMessage(msg)
+                    } else {
+                        android.util.Log.d("CACHE_CHECK", "Hiding cached vanish message ${msg.id}")
+                    }
+                }
+
+                if (messageAdapter.itemCount > 0) {
+                    recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("dmscreen_offline", "Error loading cached messages: ${e.message}")
             }
-            messageAdapter.addMessage(msg)
-        }
-
-        if (messageAdapter.itemCount > 0) {
-            recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
         }
     }
 
@@ -330,7 +538,6 @@ class dmscreen : AppCompatActivity() {
             startActivityForResult(intent, CAPTURE_IMAGE)
         }
 
-        // Video button listener
         videoBtn.setOnClickListener {
             showVideoOptions()
         }
@@ -351,8 +558,8 @@ class dmscreen : AppCompatActivity() {
                 when (which) {
                     0 -> {
                         val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
-                        intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 60) // 60 seconds max
-                        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0) // 0 = low quality for smaller size
+                        intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 60)
+                        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0)
                         startActivityForResult(intent, CAPTURE_VIDEO)
                     }
                     1 -> {
@@ -368,19 +575,21 @@ class dmscreen : AppCompatActivity() {
     private fun toggleVanishMode() {
         if (!vanishMode) {
             AlertDialog.Builder(this)
-                .setTitle("Enable Vanish Mode?")
-                .setMessage("Messages will disappear after both users have seen them and closed the chat.")
-                .setPositiveButton("Enable") { _, _ ->
+                .setTitle("Enable Vanish Mode? 👻")
+                .setMessage("Messages will disappear after they're seen and you both close this chat.\n\n• Messages disappear after being seen\n• Works when both people close the chat\n• Regular messages stay normal")
+                .setPositiveButton("Turn On") { _, _ ->
                     vanishMode = true
                     updateVanishModeButton()
-                    Toast.makeText(this, "Vanish mode enabled 👻", Toast.LENGTH_SHORT).show()
+                    updateVanishModeBackground()
+                    Toast.makeText(this, "Vanish mode on 👻", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
         } else {
             vanishMode = false
             updateVanishModeButton()
-            Toast.makeText(this, "Vanish mode disabled", Toast.LENGTH_SHORT).show()
+            updateVanishModeBackground()
+            Toast.makeText(this, "Vanish mode off", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -391,6 +600,157 @@ class dmscreen : AppCompatActivity() {
         } else {
             vanishModeBtn.setImageResource(R.drawable.ic_vanish_off)
             vanishModeBtn.alpha = 0.5f
+        }
+    }
+
+    private fun updateVanishModeBackground() {
+        val rootLayout = findViewById<android.view.View>(R.id.rvMessages)?.parent as? android.view.View
+
+        if (vanishMode) {
+            rootLayout?.setBackgroundColor(android.graphics.Color.parseColor("#1a1a2e"))
+        } else {
+            rootLayout?.setBackgroundColor(android.graphics.Color.parseColor("#FFFFFF"))
+        }
+    }
+
+    private fun showDebugMenu() {
+        val options = arrayOf(
+            "Show Vanish Stats",
+            "About Vanish Mode",
+            "Force Delete Vanish Messages",
+            "Screenshot Detection Info",
+            "Offline Mode Status",
+            "Cancel"
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle("Debug Menu 🛠️")
+            .setItems(options) { dialog, which ->
+                when (which) {
+                    0 -> showVanishModeStats()
+                    1 -> showVanishModeInfo()
+                    2 -> forceDeleteVanishMessages()
+                    3 -> showScreenshotDetectionInfo()
+                    4 -> showOfflineModeStatus()
+                    5 -> dialog.dismiss()
+                }
+            }
+            .show()
+    }
+
+    private fun showVanishModeStats() {
+        val cachedMessages = dbHelper.getCachedMessages(chatId)
+        vanishModeManager.logVanishModeStats(chatId, cachedMessages, currentUserId)
+
+        val vanishCount = vanishModeManager.getVanishMessageCount(cachedMessages)
+
+        AlertDialog.Builder(this)
+            .setTitle("Vanish Mode Stats 📊")
+            .setMessage("""
+                Total Messages: ${cachedMessages.size}
+                Vanish Messages: $vanishCount
+                Regular Messages: ${cachedMessages.size - vanishCount}
+                
+                Vanish Mode: ${if (vanishMode) "ON 👻" else "OFF"}
+                
+                Check logcat for detailed stats.
+            """.trimIndent())
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun showVanishModeInfo() {
+        val explanation = vanishModeManager.getVanishModeExplanation()
+
+        AlertDialog.Builder(this)
+            .setTitle("About Vanish Mode 👻")
+            .setMessage(explanation)
+            .setPositiveButton("Got it", null)
+            .show()
+    }
+
+    private fun forceDeleteVanishMessages() {
+        AlertDialog.Builder(this)
+            .setTitle("Force Delete Vanish Messages")
+            .setMessage("This will attempt to delete all vanish messages that both users have seen. Continue?")
+            .setPositiveButton("Delete") { _, _ ->
+                vanishModeManager.deleteSeenVanishMessages(chatId, currentUserId) { success, count ->
+                    runOnUiThread {
+                        if (success && count > 0) {
+                            Toast.makeText(
+                                this,
+                                "Deleted $count vanish messages",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            messageAdapter.notifyDataSetChanged()
+                        } else {
+                            Toast.makeText(
+                                this,
+                                "No vanish messages to delete",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showScreenshotDetectionInfo() {
+        val storagePermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+
+        val notificationPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            PackageManager.PERMISSION_GRANTED
+        }
+
+        val storageStatus = if (storagePermission == PackageManager.PERMISSION_GRANTED) "✓ Granted" else "✗ Denied"
+        val notificationStatus = if (notificationPermission == PackageManager.PERMISSION_GRANTED) "✓ Granted" else "✗ Denied"
+
+        AlertDialog.Builder(this)
+            .setTitle("Screenshot Detection 📸")
+            .setMessage("""
+                Screenshot detection is active.
+                
+                Permissions:
+                Storage: $storageStatus
+                Notifications: $notificationStatus
+                
+                When you take a screenshot:
+                • $otherUsername will be notified
+                • Event will be logged
+                
+                When $otherUsername takes a screenshot:
+                • You'll receive a notification
+                • You'll see an alert
+            """.trimIndent())
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun showOfflineModeStatus() {
+        lifecycleScope.launch {
+            val pendingCount = offlineRepository.getPendingActionsCount()
+            val status = if (isOnline) "🟢 Online" else "🔴 Offline"
+
+            runOnUiThread {
+                AlertDialog.Builder(this@dmscreen)
+                    .setTitle("Offline Mode Status")
+                    .setMessage("""
+                        Connection: $status
+                        Pending Messages: $pendingCount
+                        
+                        ${if (pendingCount > 0) "Messages will sync when you're back online." else "All messages are synced."}
+                    """.trimIndent())
+                    .setPositiveButton("OK", null)
+                    .show()
+            }
         }
     }
 
@@ -420,7 +780,6 @@ class dmscreen : AppCompatActivity() {
 
     private fun sendVideoMessage(videoUri: Uri) {
         try {
-            // Check video size
             val inputStream = contentResolver.openInputStream(videoUri)
             val videoSize = inputStream?.available() ?: 0
             inputStream?.close()
@@ -430,10 +789,8 @@ class dmscreen : AppCompatActivity() {
                 return
             }
 
-            // Show progress
             Toast.makeText(this, "Uploading video...", Toast.LENGTH_SHORT).show()
 
-            // Read video data
             val videoData = readVideoData(videoUri)
             val base64Video = Base64.encodeToString(videoData, Base64.DEFAULT)
 
@@ -479,7 +836,10 @@ class dmscreen : AppCompatActivity() {
                                 )
 
                                 messageAdapter.addMessage(message)
-                                dbHelper.cacheMessage(message)
+
+                                lifecycleScope.launch {
+                                    offlineRepository.cacheMessage(message)
+                                }
 
                                 val updatedChat = Chat(
                                     chatId = chatId,
@@ -529,76 +889,34 @@ class dmscreen : AppCompatActivity() {
             val resizedBitmap = resizeBitmap(bitmap, 800)
             val base64Image = bitmapToBase64(resizedBitmap)
 
-            val request = FormBody.Builder()
-                .add("chat_id", chatId)
-                .add("sender_id", currentUserId)
-                .add("message_type", "image")
-                .add("media_data", base64Image)
-                .add("vanish_mode", if (vanishMode) "1" else "0")
-                .build()
-
-            val httpRequest = Request.Builder()
-                .url("${BASE_URL}send_message.php")
-                .post(request)
-                .build()
-
-            client.newCall(httpRequest).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    runOnUiThread {
-                        Toast.makeText(this@dmscreen, "Failed to send image", Toast.LENGTH_SHORT).show()
-                    }
+            lifecycleScope.launch {
+                if (isOnline) {
+                    sendImageMessageOnline(base64Image)
+                } else {
+                    sendImageMessageOffline(base64Image)
                 }
-
-                override fun onResponse(call: Call, response: Response) {
-                    val responseData = response.body?.string()
-                    runOnUiThread {
-                        try {
-                            val json = JSONObject(responseData ?: "{}")
-                            if (json.getInt("statuscode") == 200) {
-                                val messageId = json.getInt("message_id")
-                                val timestamp = json.getLong("timestamp")
-                                val deliveryStatus = json.optString("delivery_status", "sent")
-
-                                val message = Message(
-                                    id = messageId,
-                                    chatId = chatId,
-                                    senderId = currentUserId,
-                                    messageType = "image",
-                                    mediaPath = "data:image/jpeg;base64,$base64Image",
-                                    timestamp = timestamp,
-                                    vanishMode = vanishMode,
-                                    deliveryStatus = deliveryStatus
-                                )
-
-                                messageAdapter.addMessage(message)
-                                dbHelper.cacheMessage(message)
-
-                                val updatedChat = Chat(
-                                    chatId = chatId,
-                                    userId = otherUserId,
-                                    username = otherUsername,
-                                    profileImage = otherUserProfileImage,
-                                    lastMessage = "Image",
-                                    timestamp = timestamp,
-                                    lastMessageSenderId = currentUserId,
-                                    deliveryStatus = deliveryStatus
-                                )
-                                dbHelper.cacheChat(updatedChat)
-
-                                recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
-                            }
-                        } catch (e: Exception) {
-                            Toast.makeText(this@dmscreen, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            })
+            }
         } catch (e: Exception) {
             Toast.makeText(this, "Error processing image: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun sendTextMessage(text: String) {
+        lifecycleScope.launch {
+            try {
+                if (isOnline) {
+                    sendTextMessageOnline(text)
+                } else {
+                    sendTextMessageOffline(text)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("dmscreen_offline", "Error sending message: ${e.message}")
+                Toast.makeText(this@dmscreen, "Failed to send message", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun sendTextMessageOnline(text: String) {
         val request = FormBody.Builder()
             .add("chat_id", chatId)
             .add("sender_id", currentUserId)
@@ -615,7 +933,10 @@ class dmscreen : AppCompatActivity() {
         client.newCall(httpRequest).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
-                    Toast.makeText(this@dmscreen, "Failed to send message", Toast.LENGTH_SHORT).show()
+                    lifecycleScope.launch {
+                        sendTextMessageOffline(text)
+                        Toast.makeText(this@dmscreen, "⚠ Message queued for sending", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
 
@@ -641,7 +962,10 @@ class dmscreen : AppCompatActivity() {
                             )
 
                             messageAdapter.addMessage(message)
-                            dbHelper.cacheMessage(message)
+
+                            lifecycleScope.launch {
+                                offlineRepository.cacheMessage(message)
+                            }
 
                             val updatedChat = Chat(
                                 chatId = chatId,
@@ -667,78 +991,164 @@ class dmscreen : AppCompatActivity() {
         })
     }
 
+    private suspend fun sendTextMessageOffline(text: String) {
+        val tempId = -(System.currentTimeMillis().toInt())
+        val timestamp = System.currentTimeMillis() / 1000
+
+        val optimisticMessage = Message(
+            id = tempId,
+            chatId = chatId,
+            senderId = currentUserId,
+            messageType = "text",
+            content = text,
+            timestamp = timestamp,
+            vanishMode = vanishMode,
+            deliveryStatus = "pending"
+        )
+
+        runOnUiThread {
+            messageAdapter.addMessage(optimisticMessage)
+            recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
+        }
+
+        val actionId = offlineRepository.queueMessageSend(
+            chatId = chatId,
+            senderId = currentUserId,
+            messageType = "text",
+            content = text,
+            vanishMode = vanishMode
+        )
+
+        android.util.Log.d("dmscreen_offline", "Message queued with action ID: $actionId")
+
+        runOnUiThread {
+            Toast.makeText(this@dmscreen, "📤 Message queued - will send when online", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun sendImageMessage(imageUri: Uri) {
-        try {
-            val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, imageUri)
-            val resizedBitmap = resizeBitmap(bitmap, 800)
-            val base64Image = bitmapToBase64(resizedBitmap)
+        lifecycleScope.launch {
+            try {
+                val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, imageUri)
+                val resizedBitmap = resizeBitmap(bitmap, 800)
+                val base64Image = bitmapToBase64(resizedBitmap)
 
-            val request = FormBody.Builder()
-                .add("chat_id", chatId)
-                .add("sender_id", currentUserId)
-                .add("message_type", "image")
-                .add("media_data", base64Image)
-                .add("vanish_mode", if (vanishMode) "1" else "0")
-                .build()
+                if (isOnline) {
+                    sendImageMessageOnline(base64Image)
+                } else {
+                    sendImageMessageOffline(base64Image)
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@dmscreen, "Error loading image: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
-            val httpRequest = Request.Builder()
-                .url("${BASE_URL}send_message.php")
-                .post(request)
-                .build()
+    private fun sendImageMessageOnline(base64Image: String) {
+        val request = FormBody.Builder()
+            .add("chat_id", chatId)
+            .add("sender_id", currentUserId)
+            .add("message_type", "image")
+            .add("media_data", base64Image)
+            .add("vanish_mode", if (vanishMode) "1" else "0")
+            .build()
 
-            client.newCall(httpRequest).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    runOnUiThread {
-                        Toast.makeText(this@dmscreen, "Failed to send image", Toast.LENGTH_SHORT).show()
+        val httpRequest = Request.Builder()
+            .url("${BASE_URL}send_message.php")
+            .post(request)
+            .build()
+
+        client.newCall(httpRequest).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    lifecycleScope.launch {
+                        sendImageMessageOffline(base64Image)
+                        Toast.makeText(this@dmscreen, "⚠ Image queued for sending", Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
 
-                override fun onResponse(call: Call, response: Response) {
-                    val responseData = response.body?.string()
-                    runOnUiThread {
-                        try {
-                            val json = JSONObject(responseData ?: "{}")
-                            if (json.getInt("statuscode") == 200) {
-                                val messageId = json.getInt("message_id")
-                                val timestamp = json.getLong("timestamp")
-                                val deliveryStatus = json.optString("delivery_status", "sent")
+            override fun onResponse(call: Call, response: Response) {
+                val responseData = response.body?.string()
+                runOnUiThread {
+                    try {
+                        val json = JSONObject(responseData ?: "{}")
+                        if (json.getInt("statuscode") == 200) {
+                            val messageId = json.getInt("message_id")
+                            val timestamp = json.getLong("timestamp")
+                            val deliveryStatus = json.optString("delivery_status", "sent")
 
-                                val message = Message(
-                                    id = messageId,
-                                    chatId = chatId,
-                                    senderId = currentUserId,
-                                    messageType = "image",
-                                    mediaPath = "data:image/jpeg;base64,$base64Image",
-                                    timestamp = timestamp,
-                                    vanishMode = vanishMode,
-                                    deliveryStatus = deliveryStatus
-                                )
+                            val message = Message(
+                                id = messageId,
+                                chatId = chatId,
+                                senderId = currentUserId,
+                                messageType = "image",
+                                mediaPath = "data:image/jpeg;base64,$base64Image",
+                                timestamp = timestamp,
+                                vanishMode = vanishMode,
+                                deliveryStatus = deliveryStatus
+                            )
 
-                                messageAdapter.addMessage(message)
-                                dbHelper.cacheMessage(message)
+                            messageAdapter.addMessage(message)
 
-                                val updatedChat = Chat(
-                                    chatId = chatId,
-                                    userId = otherUserId,
-                                    username = otherUsername,
-                                    profileImage = otherUserProfileImage,
-                                    lastMessage = "Image",
-                                    timestamp = timestamp,
-                                    lastMessageSenderId = currentUserId,
-                                    deliveryStatus = deliveryStatus
-                                )
-                                dbHelper.cacheChat(updatedChat)
-
-                                recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
+                            lifecycleScope.launch {
+                                offlineRepository.cacheMessage(message)
                             }
-                        } catch (e: Exception) {
-                            Toast.makeText(this@dmscreen, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+
+                            val updatedChat = Chat(
+                                chatId = chatId,
+                                userId = otherUserId,
+                                username = otherUsername,
+                                profileImage = otherUserProfileImage,
+                                lastMessage = "Image",
+                                timestamp = timestamp,
+                                lastMessageSenderId = currentUserId,
+                                deliveryStatus = deliveryStatus
+                            )
+                            dbHelper.cacheChat(updatedChat)
+
+                            recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
                         }
+                    } catch (e: Exception) {
+                        Toast.makeText(this@dmscreen, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
-            })
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error loading image: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private suspend fun sendImageMessageOffline(base64Image: String) {
+        val tempId = -(System.currentTimeMillis().toInt())
+        val timestamp = System.currentTimeMillis() / 1000
+
+        val optimisticMessage = Message(
+            id = tempId,
+            chatId = chatId,
+            senderId = currentUserId,
+            messageType = "image",
+            mediaPath = "data:image/jpeg;base64,$base64Image",
+            timestamp = timestamp,
+            vanishMode = vanishMode,
+            deliveryStatus = "pending"
+        )
+
+        runOnUiThread {
+            messageAdapter.addMessage(optimisticMessage)
+            recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
+        }
+
+        val actionId = offlineRepository.queueMessageSend(
+            chatId = chatId,
+            senderId = currentUserId,
+            messageType = "image",
+            mediaData = base64Image,
+            vanishMode = vanishMode
+        )
+
+        android.util.Log.d("dmscreen_offline", "Image queued with action ID: $actionId")
+
+        runOnUiThread {
+            Toast.makeText(this@dmscreen, "📤 Image queued - will send when online", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -751,8 +1161,6 @@ class dmscreen : AppCompatActivity() {
         }
         handler.post(pollingRunnable!!)
     }
-
-    // Replace the entire fetchNewMessages() method in dmscreen.kt with this:
 
     private fun fetchNewMessages() {
         val url = "${BASE_URL}get_messages.php?chat_id=$chatId&user_id=$currentUserId&last_timestamp=$lastTimestamp"
@@ -778,25 +1186,24 @@ class dmscreen : AppCompatActivity() {
                             for (i in 0 until messagesArray.length()) {
                                 val msgJson = messagesArray.getJSONObject(i)
 
-                                // Parse shared_post_id if present
                                 val sharedPostId = if (msgJson.has("shared_post_id") && !msgJson.isNull("shared_post_id")) {
                                     msgJson.getInt("shared_post_id")
                                 } else {
                                     null
                                 }
 
-                                // Get message type - ensure it's exactly what was sent
                                 val messageType = msgJson.getString("message_type")
+                                val isVanishMode = msgJson.getInt("vanish_mode") == 1
 
                                 val message = Message(
                                     id = msgJson.getInt("id"),
                                     chatId = chatId,
                                     senderId = msgJson.getString("sender_id"),
-                                    messageType = messageType, // Use the exact type from server
+                                    messageType = messageType,
                                     content = msgJson.optString("content", ""),
                                     mediaPath = msgJson.optString("media_path", ""),
                                     timestamp = msgJson.getLong("timestamp"),
-                                    vanishMode = msgJson.getInt("vanish_mode") == 1,
+                                    vanishMode = isVanishMode,
                                     isDeleted = msgJson.getInt("is_deleted") == 1,
                                     isEdited = msgJson.getInt("is_edited") == 1,
                                     seenBy = msgJson.optString("seen_by", ""),
@@ -804,28 +1211,84 @@ class dmscreen : AppCompatActivity() {
                                     sharedPostId = sharedPostId
                                 )
 
-                                // Only add if message type is valid
-                                messageAdapter.addMessage(message)
-                                dbHelper.cacheMessage(message)
+                                if (vanishModeManager.shouldShowMessage(message, currentUserId)) {
+                                    messageAdapter.addMessage(message)
 
-                                if (message.timestamp > lastTimestamp) {
-                                    lastTimestamp = message.timestamp
-                                }
+                                    lifecycleScope.launch {
+                                        offlineRepository.cacheMessage(message)
+                                    }
 
-                                // Mark message as seen if not from current user
-                                if (message.senderId != currentUserId) {
-                                    markMessageAsSeen(message.id)
+                                    if (message.timestamp > lastTimestamp) {
+                                        lastTimestamp = message.timestamp
+                                    }
+
+                                    if (message.senderId != currentUserId) {
+                                        markMessageAsSeen(message.id)
+                                    }
+                                } else {
+                                    android.util.Log.d("dmscreen", "Hiding vanish message ${message.id} (already seen)")
                                 }
                             }
 
-                            // Scroll to bottom if new messages arrived
                             if (messagesArray.length() > 0) {
                                 recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
                             }
+
+                            checkForDeletedMessages()
                         }
                     } catch (e: Exception) {
                         android.util.Log.e("dmscreen", "Error fetching messages: ${e.message}")
                         e.printStackTrace()
+                    }
+                }
+            }
+        })
+    }
+
+    private fun checkForDeletedMessages() {
+        val cachedIds = dbHelper.getCachedMessageIds(chatId)
+
+        if (cachedIds.isEmpty()) return
+
+        val idsString = cachedIds.joinToString(",")
+        val url = "${BASE_URL}check_deleted_messages.php?chat_id=$chatId&message_ids=$idsString"
+
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                android.util.Log.e("dmscreen", "Failed to check deleted messages: ${e.message}")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseData = response.body?.string()
+                runOnUiThread {
+                    try {
+                        val json = JSONObject(responseData ?: "{}")
+                        if (json.getInt("statuscode") == 200) {
+                            val existingIdsArray = json.getJSONArray("existing_ids")
+                            val existingIds = mutableListOf<Int>()
+
+                            for (i in 0 until existingIdsArray.length()) {
+                                existingIds.add(existingIdsArray.getInt(i))
+                            }
+
+                            val deletedIds = cachedIds.filter { !existingIds.contains(it) }
+
+                            if (deletedIds.isNotEmpty()) {
+                                android.util.Log.d("dmscreen", "Found ${deletedIds.size} deleted messages")
+
+                                deletedIds.forEach { messageId ->
+                                    messageAdapter.deleteMessage(messageId)
+                                    dbHelper.deleteMessage(messageId)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("dmscreen", "Error checking deleted messages: ${e.message}")
                     }
                 }
             }
@@ -845,7 +1308,9 @@ class dmscreen : AppCompatActivity() {
 
         client.newCall(httpRequest).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {}
-            override fun onResponse(call: Call, response: Response) {}
+            override fun onResponse(call: Call, response: Response) {
+                android.util.Log.d("dmscreen", "Message $messageId marked as seen")
+            }
         })
     }
 
@@ -854,6 +1319,11 @@ class dmscreen : AppCompatActivity() {
 
         if (message.isDeleted) {
             Toast.makeText(this, "This message has been deleted", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (message.vanishMode) {
+            Toast.makeText(this, "Vanish mode messages cannot be edited", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -1034,8 +1504,37 @@ class dmscreen : AppCompatActivity() {
         return Bitmap.createScaledBitmap(bitmap, width, height, true)
     }
 
+    override fun onBackPressed() {
+        isLeavingChat = true
+        handleVanishModeExit()
+        super.onBackPressed()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        android.util.Log.d("dmscreen", "onResume called")
+
+        // Start screenshot detection
+        screenshotDetector.startDetection()
+
+        // Start checking for screenshot notifications
+        screenshotCheckRunnable = object : Runnable {
+            override fun run() {
+                checkScreenshotNotifications()
+                handler.postDelayed(this, 5000)
+            }
+        }
+        handler.postDelayed(screenshotCheckRunnable!!, 1000)
+    }
+
     override fun onPause() {
         super.onPause()
+
+        // Stop screenshot detection
+        screenshotDetector.stopDetection()
+
+        // Stop screenshot check polling
+        screenshotCheckRunnable?.let { handler.removeCallbacks(it) }
     }
 
     override fun onStop() {
@@ -1045,5 +1544,13 @@ class dmscreen : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         pollingRunnable?.let { handler.removeCallbacks(it) }
+        screenshotCheckRunnable?.let { handler.removeCallbacks(it) }
+
+        // Stop screenshot detection
+        screenshotDetector.stopDetection()
+
+        if (isFinishing || isLeavingChat) {
+            handleVanishModeExit()
+        }
     }
 }
