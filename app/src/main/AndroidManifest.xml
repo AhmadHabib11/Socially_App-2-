@@ -25,7 +25,18 @@
 <!--    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />-->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+
+    <!-- Add these permissions if not present -->
+
+    <!-- Optional: For foreground services if needed -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+
+
+
+
     <application
+        android:name=".SociallyApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
