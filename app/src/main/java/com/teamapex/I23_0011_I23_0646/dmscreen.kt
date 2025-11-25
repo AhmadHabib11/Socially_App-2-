@@ -29,6 +29,9 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+
 class dmscreen : AppCompatActivity() {
 
     private lateinit var recyclerView: RecyclerView
@@ -70,9 +73,15 @@ class dmscreen : AppCompatActivity() {
         )
     }
 
+    private lateinit var offlineRepository: OfflineRepository
+    private var isOnline = true
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.dmscreen)
+
+        offlineRepository = (application as SociallyApplication).offlineRepository
 
         sessionManager = SessionManager(this)
         currentUserId = sessionManager.getUserId() ?: ""
@@ -90,6 +99,46 @@ class dmscreen : AppCompatActivity() {
         markExistingMessagesAsSeen()
         startPollingMessages()
         setupListeners()
+
+        lifecycleScope.launch {
+            NetworkUtil.observeNetworkConnectivity(this@dmscreen)
+                .collect { connected ->
+                    isOnline = connected
+                    updateNetworkStatus(connected)
+                }
+        }
+
+        // Load cached messages first
+        loadCachedMessages()
+
+        // Then fetch new messages if online
+        if (isOnline) {
+            startPollingMessages()
+        }
+
+    }
+
+
+    private fun updateNetworkStatus(connected: Boolean) {
+        runOnUiThread {
+            if (!connected) {
+                Toast.makeText(this, "⚠️ Offline mode - messages will sync when online", Toast.LENGTH_SHORT).show()
+                // Optionally: Update UI to show offline indicator
+            } else {
+                // Check for pending messages to sync
+                lifecycleScope.launch {
+                    val pendingCount = offlineRepository.getPendingActionsCount()
+                    if (pendingCount > 0) {
+                        Toast.makeText(
+                            this@dmscreen,
+                            "📤 Syncing $pendingCount pending messages...",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        SyncWorker.triggerImmediateSync(this@dmscreen)
+                    }
+                }
+            }
+        }
     }
 
     private fun markExistingMessagesAsSeen() {
@@ -281,21 +330,22 @@ class dmscreen : AppCompatActivity() {
     }
 
     private fun loadCachedMessages() {
-        val cachedMessages = dbHelper.getCachedMessages(chatId)
+        lifecycleScope.launch {
+            try {
+                val cachedMessages = offlineRepository.getCachedMessages(chatId)
 
-        android.util.Log.e("CACHE_CHECK", "=== Loading cached messages ===")
-        android.util.Log.e("CACHE_CHECK", "Total messages: ${cachedMessages.size}")
+                android.util.Log.d("dmscreen_offline", "Loaded ${cachedMessages.size} cached messages")
 
-        cachedMessages.forEach { msg ->
-            android.util.Log.e("CACHE_CHECK", "Message ID=${msg.id}, Type=${msg.messageType}, VanishMode=${msg.vanishMode}")
-            if (msg.messageType == "image" || msg.messageType == "video") {
-                android.util.Log.e("CACHE_CHECK", "${msg.messageType.uppercase()} - mediaPath is empty: ${msg.mediaPath.isEmpty()}, starts with data: = ${msg.mediaPath.startsWith("data:")}")
+                cachedMessages.forEach { msg ->
+                    messageAdapter.addMessage(msg)
+                }
+
+                if (messageAdapter.itemCount > 0) {
+                    recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("dmscreen_offline", "Error loading cached messages: ${e.message}")
             }
-            messageAdapter.addMessage(msg)
-        }
-
-        if (messageAdapter.itemCount > 0) {
-            recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
         }
     }
 
@@ -599,6 +649,22 @@ class dmscreen : AppCompatActivity() {
     }
 
     private fun sendTextMessage(text: String) {
+        lifecycleScope.launch {
+            try {
+                if (isOnline) {
+                    // Online: Send immediately via API
+                    sendTextMessageOnline(text)
+                } else {
+                    // Offline: Queue for later sync
+                    sendTextMessageOffline(text)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("dmscreen_offline", "Error sending message: ${e.message}")
+                Toast.makeText(this@dmscreen, "Failed to send message", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    private fun sendTextMessageOnline(text: String) {
         val request = FormBody.Builder()
             .add("chat_id", chatId)
             .add("sender_id", currentUserId)
@@ -615,7 +681,11 @@ class dmscreen : AppCompatActivity() {
         client.newCall(httpRequest).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
-                    Toast.makeText(this@dmscreen, "Failed to send message", Toast.LENGTH_SHORT).show()
+                    // Network failed - queue for offline sync
+                    lifecycleScope.launch {
+                        sendTextMessageOffline(text)
+                        Toast.makeText(this@dmscreen, "⚠️ Message queued for sending", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
 
@@ -641,19 +711,11 @@ class dmscreen : AppCompatActivity() {
                             )
 
                             messageAdapter.addMessage(message)
-                            dbHelper.cacheMessage(message)
 
-                            val updatedChat = Chat(
-                                chatId = chatId,
-                                userId = otherUserId,
-                                username = otherUsername,
-                                profileImage = otherUserProfileImage,
-                                lastMessage = text,
-                                timestamp = timestamp,
-                                lastMessageSenderId = currentUserId,
-                                deliveryStatus = deliveryStatus
-                            )
-                            dbHelper.cacheChat(updatedChat)
+                            // Cache the message
+                            lifecycleScope.launch {
+                                offlineRepository.cacheMessage(message)
+                            }
 
                             recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
                         } else {
@@ -668,79 +730,159 @@ class dmscreen : AppCompatActivity() {
     }
 
     private fun sendImageMessage(imageUri: Uri) {
-        try {
-            val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, imageUri)
-            val resizedBitmap = resizeBitmap(bitmap, 800)
-            val base64Image = bitmapToBase64(resizedBitmap)
+        lifecycleScope.launch {
+            try {
+                val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, imageUri)
+                val resizedBitmap = resizeBitmap(bitmap, 800)
+                val base64Image = bitmapToBase64(resizedBitmap)
 
-            val request = FormBody.Builder()
-                .add("chat_id", chatId)
-                .add("sender_id", currentUserId)
-                .add("message_type", "image")
-                .add("media_data", base64Image)
-                .add("vanish_mode", if (vanishMode) "1" else "0")
-                .build()
-
-            val httpRequest = Request.Builder()
-                .url("${BASE_URL}send_message.php")
-                .post(request)
-                .build()
-
-            client.newCall(httpRequest).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    runOnUiThread {
-                        Toast.makeText(this@dmscreen, "Failed to send image", Toast.LENGTH_SHORT).show()
-                    }
+                if (isOnline) {
+                    sendImageMessageOnline(base64Image)
+                } else {
+                    sendImageMessageOffline(base64Image)
                 }
-
-                override fun onResponse(call: Call, response: Response) {
-                    val responseData = response.body?.string()
-                    runOnUiThread {
-                        try {
-                            val json = JSONObject(responseData ?: "{}")
-                            if (json.getInt("statuscode") == 200) {
-                                val messageId = json.getInt("message_id")
-                                val timestamp = json.getLong("timestamp")
-                                val deliveryStatus = json.optString("delivery_status", "sent")
-
-                                val message = Message(
-                                    id = messageId,
-                                    chatId = chatId,
-                                    senderId = currentUserId,
-                                    messageType = "image",
-                                    mediaPath = "data:image/jpeg;base64,$base64Image",
-                                    timestamp = timestamp,
-                                    vanishMode = vanishMode,
-                                    deliveryStatus = deliveryStatus
-                                )
-
-                                messageAdapter.addMessage(message)
-                                dbHelper.cacheMessage(message)
-
-                                val updatedChat = Chat(
-                                    chatId = chatId,
-                                    userId = otherUserId,
-                                    username = otherUsername,
-                                    profileImage = otherUserProfileImage,
-                                    lastMessage = "Image",
-                                    timestamp = timestamp,
-                                    lastMessageSenderId = currentUserId,
-                                    deliveryStatus = deliveryStatus
-                                )
-                                dbHelper.cacheChat(updatedChat)
-
-                                recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
-                            }
-                        } catch (e: Exception) {
-                            Toast.makeText(this@dmscreen, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            })
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error loading image: ${e.message}", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@dmscreen, "Error loading image: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
+    private fun sendImageMessageOnline(base64Image: String) {
+        val request = FormBody.Builder()
+            .add("chat_id", chatId)
+            .add("sender_id", currentUserId)
+            .add("message_type", "image")
+            .add("media_data", base64Image)
+            .add("vanish_mode", if (vanishMode) "1" else "0")
+            .build()
+
+        val httpRequest = Request.Builder()
+            .url("${BASE_URL}send_message.php")
+            .post(request)
+            .build()
+
+        client.newCall(httpRequest).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    lifecycleScope.launch {
+                        sendImageMessageOffline(base64Image)
+                        Toast.makeText(this@dmscreen, "⚠️ Image queued for sending", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseData = response.body?.string()
+                runOnUiThread {
+                    try {
+                        val json = JSONObject(responseData ?: "{}")
+                        if (json.getInt("statuscode") == 200) {
+                            val messageId = json.getInt("message_id")
+                            val timestamp = json.getLong("timestamp")
+                            val deliveryStatus = json.optString("delivery_status", "sent")
+
+                            val message = Message(
+                                id = messageId,
+                                chatId = chatId,
+                                senderId = currentUserId,
+                                messageType = "image",
+                                mediaPath = "data:image/jpeg;base64,$base64Image",
+                                timestamp = timestamp,
+                                vanishMode = vanishMode,
+                                deliveryStatus = deliveryStatus
+                            )
+
+                            messageAdapter.addMessage(message)
+
+                            lifecycleScope.launch {
+                                offlineRepository.cacheMessage(message)
+                            }
+
+                            recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(this@dmscreen, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        })
+    }
+    private suspend fun sendImageMessageOffline(base64Image: String) {
+        val tempId = -(System.currentTimeMillis().toInt())
+        val timestamp = System.currentTimeMillis() / 1000
+
+        val optimisticMessage = Message(
+            id = tempId,
+            chatId = chatId,
+            senderId = currentUserId,
+            messageType = "image",
+            mediaPath = "data:image/jpeg;base64,$base64Image",
+            timestamp = timestamp,
+            vanishMode = vanishMode,
+            deliveryStatus = "pending"
+        )
+
+        runOnUiThread {
+            messageAdapter.addMessage(optimisticMessage)
+            recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
+        }
+
+        val actionId = offlineRepository.queueMessageSend(
+            chatId = chatId,
+            senderId = currentUserId,
+            messageType = "image",
+            mediaData = base64Image,
+            vanishMode = vanishMode
+        )
+
+        android.util.Log.d("dmscreen_offline", "Image queued with action ID: $actionId")
+
+        runOnUiThread {
+            Toast.makeText(this@dmscreen, "📤 Image queued - will send when online", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+
+    private suspend fun sendTextMessageOffline(text: String) {
+        // Create optimistic message for immediate display
+        val tempId = -(System.currentTimeMillis().toInt()) // Negative ID for temp messages
+        val timestamp = System.currentTimeMillis() / 1000
+
+        val optimisticMessage = Message(
+            id = tempId,
+            chatId = chatId,
+            senderId = currentUserId,
+            messageType = "text",
+            content = text,
+            timestamp = timestamp,
+            vanishMode = vanishMode,
+            deliveryStatus = "pending"
+        )
+
+        // Show message immediately
+        runOnUiThread {
+            messageAdapter.addMessage(optimisticMessage)
+            recyclerView.scrollToPosition(messageAdapter.itemCount - 1)
+        }
+
+        // Queue for background sync
+        val actionId = offlineRepository.queueMessageSend(
+            chatId = chatId,
+            senderId = currentUserId,
+            messageType = "text",
+            content = text,
+            vanishMode = vanishMode
+        )
+
+        android.util.Log.d("dmscreen_offline", "Message queued with action ID: $actionId")
+
+        runOnUiThread {
+            Toast.makeText(this@dmscreen, "📤 Message queued - will send when online", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+
 
     private fun startPollingMessages() {
         pollingRunnable = object : Runnable {
