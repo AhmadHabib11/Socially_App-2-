@@ -17,7 +17,7 @@ class OnlineStatusManager(private val context: Context) {
     private var currentUserId: String = ""
 
     companion object {
-        private const val BASE_URL = "http://192.168.100.76/socially_app/"
+        private const val BASE_URL = "http://172.15.44.21/socially_app/"
         private const val HEARTBEAT_INTERVAL = 15000L // 15 seconds
     }
 

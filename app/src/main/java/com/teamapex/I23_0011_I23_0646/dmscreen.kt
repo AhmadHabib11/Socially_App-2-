@@ -71,7 +71,7 @@ class dmscreen : AppCompatActivity() {
         private const val CAPTURE_IMAGE = 2
         private const val PICK_VIDEO = 3
         private const val CAPTURE_VIDEO = 4
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://172.15.44.21/socially_app/"
         private const val MAX_VIDEO_SIZE = 10 * 1024 * 1024 // 10MB limit
         private const val PERMISSION_REQ_ID = 22
         private const val NOTIFICATION_PERMISSION_REQ_ID = 100

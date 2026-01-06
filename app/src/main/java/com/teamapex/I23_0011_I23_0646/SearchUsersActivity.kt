@@ -28,7 +28,7 @@ class SearchUsersActivity : AppCompatActivity() {
     private var currentUserId = ""
 
     companion object {
-        private const val BASE_URL = "http://192.168.100.76/socially_app/"
+        private const val BASE_URL = "http://172.15.44.21/socially_app/"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

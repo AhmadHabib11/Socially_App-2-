@@ -156,7 +156,7 @@ class MessageAdapter(
             usernameView: TextView,
             captionView: TextView
         ) {
-            val url = "http://192.168.100.76/socially_app/get_post_details.php?post_id=$postId"
+            val url = "http://172.15.44.21/socially_app/get_post_details.php?post_id=$postId"
 
             val request = StringRequest(
                 Request.Method.GET, url,
@@ -236,7 +236,7 @@ class MessageAdapter(
             usernameView: TextView,
             captionView: TextView
         ) {
-            val url = "http://192.168.100.76/socially_app/get_post_details.php?post_id=$postId"
+            val url = "http://172.15.44.21/socially_app/get_post_details.php?post_id=$postId"
 
             val request = StringRequest(
                 Request.Method.GET, url,

@@ -155,7 +155,7 @@ class profile : AppCompatActivity() {
             return
         }
 
-        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+        val url = "http://172.15.44.21/socially_app/get_profile_pic.php?path=$profilePicPath"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -184,7 +184,7 @@ class profile : AppCompatActivity() {
     }
 
     private fun fetchUserData() {
-        val url = "http://192.168.100.76/socially_app/get_user_data.php?user_id=$currentUserId"
+        val url = "http://172.15.44.21/socially_app/get_user_data.php?user_id=$currentUserId"
 
         Log.d("Profile", "=== FETCHING USER DATA ===")
         Log.d("Profile", "URL: $url")
@@ -249,7 +249,7 @@ class profile : AppCompatActivity() {
     }
 
     private fun fetchUserPostsCount() {
-        val url = "http://192.168.100.76/socially_app/get_user_posts_count.php?user_id=$currentUserId"
+        val url = "http://172.15.44.21/socially_app/get_user_posts_count.php?user_id=$currentUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,

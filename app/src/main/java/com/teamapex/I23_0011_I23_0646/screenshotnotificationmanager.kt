@@ -22,7 +22,7 @@ class ScreenshotNotificationManager(private val context: Context) {
         private const val CHANNEL_ID = "screenshot_alerts"
         private const val CHANNEL_NAME = "Screenshot Alerts"
         private const val NOTIFICATION_ID_BASE = 1000
-        private const val BASE_URL = "http://192.168.100.76/socially_app/"
+        private const val BASE_URL = "http://172.15.44.21/socially_app/"
     }
 
     init {

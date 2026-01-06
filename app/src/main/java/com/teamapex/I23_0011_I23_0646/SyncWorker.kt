@@ -26,7 +26,7 @@ class SyncWorker(
 
     companion object {
         private const val TAG = "SyncWorker"
-        private const val BASE_URL = "http://192.168.18.35/socially_app/"
+        private const val BASE_URL = "http://172.15.44.21/socially_app/"
         private const val WORK_NAME = "offline_sync_work"
         private const val MAX_RETRY_COUNT = 3
 

@@ -11,7 +11,7 @@ class VanishModeManager(private val context: Context) {
     private val client = OkHttpClient()
 
     companion object {
-        private const val BASE_URL = "http://192.168.100.76/socially_app/"
+        private const val BASE_URL = "http://172.15.44.21/socially_app/"
         private const val TAG = "VanishModeManager"
     }
 

@@ -124,7 +124,7 @@ class notifications : AppCompatActivity() {
     }
 
     private fun loadRecentFollowers() {
-        val url = "http://192.168.100.76/socially_app/get_recent_followers.php?user_id=$currentUserId"
+        val url = "http://172.15.44.21/socially_app/get_recent_followers.php?user_id=$currentUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,

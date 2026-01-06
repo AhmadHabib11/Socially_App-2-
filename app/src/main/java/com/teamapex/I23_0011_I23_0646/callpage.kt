@@ -49,8 +49,8 @@ class callpage : AppCompatActivity() {
     private var statusCheckRunnable: Runnable? = null
 
     companion object {
-        private const val BASE_URL = "http://192.168.100.76/socially_app/"
-        private const val AGORA_APP_ID = "99ee06ca3522461d9a065a7ffd778724" // Replace with your Agora App ID
+        private const val BASE_URL = "http://172.15.44.21/socially_app/"
+        private const val AGORA_APP_ID = "99ee06ca3522461d9a065a7ffd778724"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,12 +89,10 @@ class callpage : AppCompatActivity() {
         callName.text = otherUsername
         callTime.text = "Connecting..."
 
-        // Load profile image
         if (otherProfileImage.isNotEmpty()) {
             loadProfilePicture(otherProfileImage)
         }
 
-        // Show/hide video containers based on call type
         if (callType == "video") {
             localVideoContainer.visibility = View.VISIBLE
             remoteVideoContainer.visibility = View.VISIBLE
@@ -111,7 +109,6 @@ class callpage : AppCompatActivity() {
             toggleMute()
         }
 
-        // Make profile image circular
         profileImage.outlineProvider = object : android.view.ViewOutlineProvider() {
             override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
                 outline.setOval(0, 0, view.width, view.height)
@@ -204,7 +201,8 @@ class callpage : AppCompatActivity() {
         client.newCall(httpRequest).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
-                    Toast.makeText(this@callpage, "Failed to get call token: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Log.e("CallPage", "Network error: ${e.message}")
+                    Toast.makeText(this@callpage, "Network error: ${e.message}", Toast.LENGTH_LONG).show()
                     finish()
                 }
             }
@@ -214,26 +212,50 @@ class callpage : AppCompatActivity() {
                 runOnUiThread {
                     try {
                         if (responseData.isNullOrEmpty()) {
+                            Log.e("CallPage", "Empty response from server")
                             Toast.makeText(this@callpage, "Empty response from server", Toast.LENGTH_SHORT).show()
                             finish()
                             return@runOnUiThread
                         }
 
+                        // Log the raw response for debugging
+                        Log.d("CallPage", "Raw response: $responseData")
+
+                        // Check if response contains HTML/errors
+                        if (responseData.contains("<br") || responseData.contains("<html") ||
+                            responseData.contains("<!DOCTYPE")) {
+                            Log.e("CallPage", "Server returned HTML instead of JSON: $responseData")
+                            Toast.makeText(
+                                this@callpage,
+                                "Server error. Check PHP error logs.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            finish()
+                            return@runOnUiThread
+                        }
+
+                        // Try to parse JSON
                         val json = JSONObject(responseData)
-                        android.util.Log.d("CallPage", "Token response: $json")
+                        Log.d("CallPage", "Parsed JSON: $json")
 
                         if (json.getInt("statuscode") == 200) {
                             agoraToken = json.getString("token")
+                            Log.d("CallPage", "Token received: ${agoraToken.take(20)}...")
                             joinChannel()
                         } else {
-                            val errorMsg = json.optString("message", "Failed to start call")
+                            val errorMsg = json.optString("message", "Failed to generate token")
+                            Log.e("CallPage", "Server error: $errorMsg")
                             Toast.makeText(this@callpage, errorMsg, Toast.LENGTH_SHORT).show()
                             finish()
                         }
                     } catch (e: Exception) {
-                        android.util.Log.e("CallPage", "JSON Error: ${e.message}")
-                        android.util.Log.e("CallPage", "Response data: $responseData")
-                        Toast.makeText(this@callpage, "Error parsing response: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Log.e("CallPage", "Parse error: ${e.message}")
+                        Log.e("CallPage", "Response was: $responseData")
+                        Toast.makeText(
+                            this@callpage,
+                            "Parse error: ${e.message}\nCheck logs",
+                            Toast.LENGTH_LONG
+                        ).show()
                         finish()
                     }
                 }
@@ -246,7 +268,10 @@ class callpage : AppCompatActivity() {
         options.channelProfile = Constants.CHANNEL_PROFILE_COMMUNICATION
         options.clientRoleType = Constants.CLIENT_ROLE_BROADCASTER
 
-        agoraEngine?.joinChannel(agoraToken, channelName, currentUserId.toIntOrNull() ?: 0, options)
+        val uid = currentUserId.toIntOrNull() ?: 0
+        Log.d("CallPage", "Joining channel: $channelName with UID: $uid")
+
+        agoraEngine?.joinChannel(agoraToken, channelName, uid, options)
     }
 
     private fun setupLocalVideo() {
@@ -264,8 +289,6 @@ class callpage : AppCompatActivity() {
         remoteVideoContainer.addView(surfaceView)
 
         agoraEngine?.setupRemoteVideo(VideoCanvas(surfaceView, VideoCanvas.RENDER_MODE_HIDDEN, uid))
-
-        // Hide profile image when video connects
         profileImage.visibility = View.GONE
     }
 

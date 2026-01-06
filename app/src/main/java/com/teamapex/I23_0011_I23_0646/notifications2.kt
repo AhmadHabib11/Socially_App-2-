@@ -96,7 +96,7 @@ class notifications2 : AppCompatActivity() {
     }
 
     private fun loadFollowRequests() {
-        val url = "http://192.168.100.76/socially_app/get_follow_requests.php?user_id=$currentUserId"
+        val url = "http://172.15.44.21/socially_app/get_follow_requests.php?user_id=$currentUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -156,7 +156,7 @@ class notifications2 : AppCompatActivity() {
     }
 
     private fun acceptFollowRequest(request: FollowRequest) {
-        val url = "http://192.168.100.76/socially_app/accept_follow_request.php"
+        val url = "http://172.15.44.21/socially_app/accept_follow_request.php"
 
         val volleyRequest = object : StringRequest(
             Request.Method.POST, url,
@@ -203,7 +203,7 @@ class notifications2 : AppCompatActivity() {
     }
 
     private fun rejectFollowRequest(request: FollowRequest) {
-        val url = "http://192.168.100.76/socially_app/reject_follow_request.php"
+        val url = "http://172.15.44.21/socially_app/reject_follow_request.php"
 
         val volleyRequest = object : StringRequest(
             Request.Method.POST, url,

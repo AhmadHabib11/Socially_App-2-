@@ -104,7 +104,7 @@ class editprofile : AppCompatActivity() {
             return
         }
 
-        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+        val url = "http://172.15.44.21/socially_app/get_profile_pic.php?path=$profilePicPath"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -131,7 +131,7 @@ class editprofile : AppCompatActivity() {
     }
 
     private fun fetchAdditionalUserData() {
-        val url = "http://192.168.100.76/socially_app/get_user_data.php?user_id=$currentUserId"
+        val url = "http://172.15.44.21/socially_app/get_user_data.php?user_id=$currentUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -195,7 +195,7 @@ class editprofile : AppCompatActivity() {
         val firstName = nameParts.getOrNull(0) ?: ""
         val lastName = nameParts.getOrNull(1) ?: ""
 
-        val url = "http://192.168.100.76/socially_app/update_profile.php"
+        val url = "http://172.15.44.21/socially_app/update_profile.php"
 
         val pd = ProgressDialog(this)
         pd.setMessage("Updating profile...")

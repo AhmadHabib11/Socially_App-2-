@@ -190,7 +190,7 @@ class profvisitnofollow : AppCompatActivity() {
     }
 
     private fun loadUserProfile() {
-        val url = "http://192.168.100.76/socially_app/get_user_data.php?user_id=$visitedUserId"
+        val url = "http://172.15.44.21/socially_app/get_user_data.php?user_id=$visitedUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -261,7 +261,7 @@ class profvisitnofollow : AppCompatActivity() {
     }
 
     private fun loadProfilePicture(profilePicPath: String) {
-        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+        val url = "http://172.15.44.21/socially_app/get_profile_pic.php?path=$profilePicPath"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -288,7 +288,7 @@ class profvisitnofollow : AppCompatActivity() {
     }
 
     private fun fetchUserPostsCount() {
-        val url = "http:// 192.168.100.76/socially_app/get_user_posts_count.php?user_id=$visitedUserId"
+        val url = "http:// 172.15.44.21/socially_app/get_user_posts_count.php?user_id=$visitedUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -315,7 +315,7 @@ class profvisitnofollow : AppCompatActivity() {
     }
 
     private fun checkFollowStatus() {
-        val url = "http://192.168.100.76/socially_app/check_follow_status.php?follower_id=$currentUserId&following_id=$visitedUserId"
+        val url = "http://172.15.44.21/socially_app/check_follow_status.php?follower_id=$currentUserId&following_id=$visitedUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -367,7 +367,7 @@ class profvisitnofollow : AppCompatActivity() {
     }
 
     private fun sendFollowRequest() {
-        val url = "http://192.168.100.76/socially_app/send_follow_request.php"
+        val url = "http://172.15.44.21/socially_app/send_follow_request.php"
 
         val request = object : StringRequest(
             Request.Method.POST, url,
@@ -404,7 +404,7 @@ class profvisitnofollow : AppCompatActivity() {
     }
 
     private fun cancelFollowRequest() {
-        val url = "http://192.168.100.76/socially_app/unfollow.php"
+        val url = "http://172.15.44.21/socially_app/unfollow.php"
 
         val request = object : StringRequest(
             Request.Method.POST, url,

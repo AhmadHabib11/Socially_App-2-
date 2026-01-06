@@ -133,7 +133,7 @@ class PostAdapter(
         val currentUserId = sp.getString("userid", "") ?: ""
 
         // Fetch chats
-        val url = "http://192.168.100.76/socially_app/get_chats.php?user_id=$currentUserId"
+        val url = "http://172.15.44.21/socially_app/get_chats.php?user_id=$currentUserId"
 
         val request = StringRequest(
             Request.Method.GET, url,
@@ -187,7 +187,7 @@ class PostAdapter(
         val sp = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
         val currentUserId = sp.getString("userid", "") ?: ""
 
-        val url = "http://192.168.100.76/socially_app/send_message.php"
+        val url = "http://172.15.44.21/socially_app/send_message.php"
 
         val request = object : StringRequest(
             Request.Method.POST, url,
@@ -227,7 +227,7 @@ class PostAdapter(
             return
         }
 
-        val url = "http://192.168.100.76/socially_app/get_profile_pic.php?path=$profilePicPath"
+        val url = "http://172.15.44.21/socially_app/get_profile_pic.php?path=$profilePicPath"
 
         val request = StringRequest(
             Request.Method.GET, url,

@@ -52,7 +52,7 @@ class login : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val url = "http://192.168.100.76/socially_app/login.php"
+            val url = "http://172.15.44.21/socially_app/login.php"
 
             val pd = ProgressDialog(this)
             pd.setMessage("Logging in...")
